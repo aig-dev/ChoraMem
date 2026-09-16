@@ -1,0 +1,64 @@
+syntax = "proto3";
+
+package memory.inference.v1;
+
+option go_package = "github.com/aig-dev/ChoraMem/gen/memory/inference/v1;inferencev1";
+
+// InferenceWorker is an internal, stateless text-processing boundary.
+service InferenceWorker {
+  rpc ProcessConsolidationWindow(ProcessConsolidationWindowRequest) returns (TaggedTextResponse);
+}
+
+// ProcessConsolidationWindowRequest contains only Core-bounded text and stable refs.
+// V1 Core does not send a request whose exact string payload exceeds 3 MiB.
+message ProcessConsolidationWindowRequest {
+  string job_ref = 1;
+  string window_text = 2;
+  repeated string allowed_target_refs = 3;
+  repeated string allowed_basis_refs = 4;
+  WindowEvidence evidence = 5;
+}
+
+message WindowEvidence {
+  repeated EvidenceEpisode episodes = 1;
+  repeated EvidenceOutcome outcomes = 2;
+  repeated EvidenceRecollection recollections = 3;
+}
+
+message EvidenceEpisode {
+  string episode_ref = 1;
+  string session_ref = 2;
+  string origin = 3;
+  repeated EvidenceSource sources = 4;
+  // Core-only transient membership in one focused Disposition formation group.
+  // Empty means this Episode is not shown to the focused formation model.
+  string formation_role = 5;
+}
+
+message EvidenceSource {
+  string source_ref = 1;
+  string role = 2;
+  string actor_kind = 3;
+  string actor_ref = 4;
+  string text = 5;
+}
+
+message EvidenceOutcome {
+  string outcome_ref = 1;
+  string episode_ref = 2;
+  string actor_kind = 3;
+  string actor_ref = 4;
+  string text = 5;
+}
+
+message EvidenceRecollection {
+  string version_ref = 1;
+  string application = 2;
+  string text = 3;
+}
+
+// TaggedTextResponse is intentionally shallow so weaker models need not emit JSON.
+// Workers should return an empty no-op rather than exceed 64 KiB.
+message TaggedTextResponse {
+  string tagged_text = 1;
+}

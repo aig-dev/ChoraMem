@@ -1,0 +1,7 @@
+version: v2
+plugins:
+  - local: sdk/typescript/node_modules/.bin/protoc-gen-es
+    out: sdk/typescript/src/gen
+    opt:
+      - target=ts
+      - import_extension=js

@@ -1,0 +1,47 @@
+{
+  "name": "@chorai/memory-core",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "type": "module",
+  "files": [
+    "dist",
+    "examples"
+  ],
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./vercel-ai": {
+      "types": "./dist/vercel-ai.d.ts",
+      "import": "./dist/vercel-ai.js"
+    }
+  },
+  "scripts": {
+    "generate": "cd ../.. && sdk/typescript/node_modules/.bin/buf generate api/memory/v1/memory.proto --template sdk/typescript/buf.gen.yaml",
+    "generate:check": "./scripts/check-generated.sh",
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@bufbuild/protobuf": "2.14.0",
+    "@connectrpc/connect": "2.1.2",
+    "@connectrpc/connect-node": "2.1.2"
+  },
+  "peerDependencies": {
+    "ai": "7.0.83"
+  },
+  "peerDependenciesMeta": {
+    "ai": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@bufbuild/buf": "1.72.0",
+    "@bufbuild/protoc-gen-es": "2.14.0",
+    "ai": "7.0.83",
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

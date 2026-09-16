@@ -1,0 +1,83 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chorai-memory-core-eval"
+version = "0.1.0"
+description = "Reference Harness and reproducible evaluation adapters for Memory Core"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+  "chorai-memory-core==0.1.0",
+]
+
+[project.optional-dependencies]
+live = ["openai>=2.26,<3"]
+cupid = [
+  "openai>=2.26,<3",
+  "PyMySQL>=1.1,<2",
+  "psycopg[binary]>=3.2,<4",
+  "pyarrow>=17,<24",
+  "tiktoken>=0.11,<1",
+]
+anchor = [
+  "openai>=2.26,<3",
+  "PyMySQL>=1.1,<2",
+  "psycopg[binary]>=3.2,<4",
+  "tiktoken>=0.11,<1",
+]
+openai-agents = ["openai-agents>=0.22.0,<0.23"]
+personamem = [
+  "openai>=2.26,<3",
+  "PyMySQL>=1.1,<2",
+  "psycopg[binary]>=3.2,<4",
+  "tiktoken>=0.11,<1",
+]
+memoryagentbench = [
+  "datasets>=4,<5",
+  "editdistance>=0.8,<1",
+  "nltk>=3.9,<4",
+  "numpy>=1.26,<2",
+  "openai>=2.26,<3",
+  "python-dotenv>=1.1,<2",
+  "PyYAML>=6,<7",
+  "rouge-score>=0.1.2,<0.2",
+  "tiktoken>=0.11,<1",
+  "tqdm>=4.67,<5",
+]
+test = [
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.24,<2",
+]
+codegen = ["grpcio-tools==1.78.0"]
+local-index = [
+  "chromadb==1.5.5",
+  "numpy>=1.26,<3",
+  "onnxruntime==1.24.3",
+  "tokenizers==0.22.2",
+]
+
+[project.scripts]
+memory-core-eval = "memory_core_eval.cli:main"
+memory-core-eval-openai-agents = "memory_core_eval.openai_agents_runner:main"
+memory-core-eval-matrix = "memory_core_eval.matrix_cli:main"
+memory-core-eval-memoryagentbench = "memory_core_eval.memoryagentbench_runner:main"
+memory-core-eval-personamem = "memory_core_eval.personamem_runner:main"
+memory-core-eval-personamem-effect = "memory_core_eval.personamem_effect_cli:main"
+memory-core-eval-perma-seed = "memory_core_eval.perma_seed_cli:main"
+memory-core-eval-cupid = "memory_core_eval.cupid_cli:main"
+memory-core-eval-anchor = "memory_core_eval.anchor_cli:main"
+memory-core-eval-seed-essential-delayed = "memory_core_eval.delayed_seed_cli:main"
+memory-core-eval-seed-generalization = "memory_core_eval.seed_generalization_cli:main"
+memory-core-eval-personamem-worker = "memory_core_eval.personamem_live:worker_main"
+memory-core-eval-install-omnimemeval = "memory_core_eval.omnimemeval_install:main"
+memory-core-eval-local-index = "memory_core_eval.local_memory_index:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src", "../../sdk/python/src"]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

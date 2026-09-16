@@ -1,0 +1,6 @@
+/bin/
+/.cache/
+/memoryd
+.env
+.env.*
+!.env.example

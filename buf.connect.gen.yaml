@@ -1,0 +1,11 @@
+version: v2
+plugins:
+  - local:
+      - go
+      - run
+      - connectrpc.com/connect/cmd/protoc-gen-connect-go@v1.20.0
+    out: gen
+    opt:
+      - paths=source_relative
+    types:
+      - memory.v1.MemoryCore

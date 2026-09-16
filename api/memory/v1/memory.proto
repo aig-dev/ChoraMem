@@ -1,0 +1,176 @@
+syntax = "proto3";
+
+package memory.v1;
+
+option go_package = "github.com/aig-dev/ChoraMem/gen/memory/v1;memoryv1";
+
+// MemoryCore is the harness-neutral public boundary of the authoritative core.
+service MemoryCore {
+  rpc ObserveSourceEvent(ObserveSourceEventRequest) returns (SourceEventReceipt);
+  rpc SelectMemory(SelectMemoryRequest) returns (MemoryContext);
+  rpc RecordMemoryDelivery(MemoryDeliveryReceipt) returns (ReceiptAck);
+  rpc ReportOutcome(ReportOutcomeRequest) returns (OutcomeReceipt);
+}
+
+enum MemoryScopeKind {
+  MEMORY_SCOPE_KIND_UNSPECIFIED = 0;
+  MEMORY_SCOPE_KIND_AGENT = 1;
+  MEMORY_SCOPE_KIND_RELATIONSHIP = 2;
+}
+
+// MemoryScope is the complete caller and causal isolation boundary carried by every public call.
+// kind determines long-term ownership; session_ref fences current causal intake and is not a third ownership kind.
+// AGENT requires an empty relationship_ref; RELATIONSHIP requires an exact relationship_ref.
+message MemoryScope {
+  string tenant_ref = 1;
+  string agent_ref = 2;
+  string relationship_ref = 3;
+  string session_ref = 4;
+  MemoryScopeKind kind = 5;
+}
+
+enum EpisodeSourceRole {
+  EPISODE_SOURCE_ROLE_UNSPECIFIED = 0;
+  EPISODE_SOURCE_ROLE_SITUATION = 1;
+  EPISODE_SOURCE_ROLE_AGENT_ACT = 2;
+  EPISODE_SOURCE_ROLE_OUTCOME = 3;
+}
+
+enum SourceActorKind {
+  SOURCE_ACTOR_KIND_UNSPECIFIED = 0;
+  SOURCE_ACTOR_KIND_USER = 1;
+  SOURCE_ACTOR_KIND_AGENT = 2;
+  SOURCE_ACTOR_KIND_SYSTEM = 3;
+  SOURCE_ACTOR_KIND_TOOL = 4;
+  SOURCE_ACTOR_KIND_EXTERNAL = 5;
+}
+
+// Source identity and actor fields are trusted provenance from an authenticated adapter;
+// the AI worker must never infer or rewrite them from text.
+message SourceEvent {
+  MemoryScope scope = 1;
+  // UTF-8 payload; V1 Core rejects values larger than 64 KiB.
+  string text = 2;
+  string source_ref = 3;
+  SourceActorKind actor_kind = 4;
+  string actor_ref = 5;
+  // Optional immutable external baseline snapshot; not a writable Memory.
+  Constitution constitution = 6;
+}
+
+message EpisodeBinding {
+  string run_ref = 1;
+  string source_group_ref = 2;
+  EpisodeSourceRole role = 3;
+}
+
+message ObserveSourceEventRequest {
+  // idempotency_key is namespaced by source_event.scope.tenant_ref and identifies
+  // the complete ObserveSourceEvent request, including episode_binding.
+  // Reusing a key in another scope of the same tenant is a conflict.
+  // To attach the same source to a new relation command, use a new idempotency_key and reuse source_event.source_ref.
+  string idempotency_key = 1;
+  SourceEvent source_event = 2;
+  EpisodeBinding episode_binding = 3;
+}
+
+message SourceEventReceipt {
+  string source_event_ref = 1;
+  string episode_ref = 2;
+}
+
+message SelectMemoryRequest {
+  MemoryScope scope = 1;
+  string run_ref = 2;
+  repeated string situation_source_event_refs = 3;
+  // constitution is an external normative baseline. It is copied into this
+  // MemoryContext and is never a writable Memory target.
+  Constitution constitution = 4;
+  // 0 preserves the legacy selection behavior. Values from 1 through 16384
+  // enable complete, frozen Episode evidence under this UTF-8 byte budget.
+  int32 episode_evidence_max_bytes = 5;
+}
+
+// Constitution is the product-owned, read-only Agent role baseline, carried by
+// immutable source intake and selected MemoryContext, never learned evidence.
+// Harnesses pass the same optional snapshot to Situation intake and Select.
+// memory_ref is its stable external version ref, not a writable Memory target.
+message Constitution {
+  string memory_ref = 1;
+  string text = 2;
+}
+
+// MemoryApplicationScope tells a Harness which subject selected long-term
+// memory may shape. It does not encode kind-specific semantic eligibility.
+enum MemoryApplicationScope {
+  MEMORY_APPLICATION_SCOPE_UNSPECIFIED = 0;
+  MEMORY_APPLICATION_SCOPE_SELF = 1;
+  MEMORY_APPLICATION_SCOPE_OTHER = 2;
+  MEMORY_APPLICATION_SCOPE_RELATION = 3;
+  MEMORY_APPLICATION_SCOPE_SITUATION = 4;
+}
+
+message Recollection {
+  string memory_ref = 1;
+  string text = 2;
+  MemoryApplicationScope application_scope = 3;
+}
+
+message Disposition {
+  string memory_ref = 1;
+  string text = 2;
+  MemoryApplicationScope application_scope = 3;
+}
+
+// EpisodeEvidence is canonical historical source text selected as bounded
+// reference evidence. It is not learned Memory and grants no write eligibility.
+message EpisodeEvidence {
+  string memory_ref = 1;
+  string text = 2;
+}
+
+// MemoryContext is the Core-selected, run-frozen long-term personalization
+// context. Harnesses place and consume its text but do not mutate it.
+message MemoryContext {
+  string context_ref = 1;
+  string run_ref = 2;
+  MemoryScope scope = 3;
+  Constitution constitution = 4;
+  repeated Recollection recollections = 5;
+  repeated Disposition dispositions = 6;
+  repeated EpisodeEvidence episode_evidence = 7;
+}
+
+message MemoryDeliveryReceipt {
+  string idempotency_key = 1;
+  MemoryScope scope = 2;
+  string run_ref = 3;
+  string memory_context_ref = 4;
+  repeated string delivered_memory_refs = 5;
+}
+
+message ReceiptAck {
+  string receipt_ref = 1;
+}
+
+message ReportOutcomeRequest {
+  string idempotency_key = 1;
+  MemoryScope scope = 2;
+  string run_ref = 3;
+  string source_group_ref = 4;
+  string text = 5;
+  repeated string delivery_receipt_refs = 6;
+  repeated string related_source_event_refs = 7;
+  // Trusted source identity is supplied by the authenticated Adapter; Core
+  // never invents an actor from outcome text.
+  string source_ref = 8;
+  SourceActorKind actor_kind = 9;
+  string actor_ref = 10;
+  // Same source snapshot as Observe, including when reused as the next Situation.
+  Constitution constitution = 11;
+}
+
+message OutcomeReceipt {
+  string outcome_event_ref = 1;
+  string episode_ref = 2;
+}

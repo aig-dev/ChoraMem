@@ -1,0 +1,72 @@
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: memory
+      POSTGRES_PASSWORD: ${MEMORY_POSTGRES_PASSWORD:?set MEMORY_POSTGRES_PASSWORD}
+      POSTGRES_DB: memory
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U memory -d memory"]
+      interval: 2s
+      timeout: 2s
+      retries: 30
+    volumes:
+      - memory-postgres:/var/lib/postgresql/data
+    networks:
+      - data
+
+  worker:
+    build: ./worker/python
+    environment:
+      MEMORY_WORKER_GRPC_ADDR: 0.0.0.0:8082
+      MEMORY_WORKER_OPENAI_MODEL: ${MEMORY_WORKER_OPENAI_MODEL:?set MEMORY_WORKER_OPENAI_MODEL}
+      MEMORY_WORKER_MAX_INPUT_BYTES: ${MEMORY_WORKER_MAX_INPUT_BYTES:-262144}
+      MEMORY_WORKER_REASONING_EFFORT: ${MEMORY_WORKER_REASONING_EFFORT:-}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OPENAI_API_KEY}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:-}
+    networks:
+      - inference
+
+  memoryd:
+    build: .
+    depends_on:
+      postgres:
+        condition: service_healthy
+      worker:
+        condition: service_started
+    environment:
+      MEMORYD_DATABASE_DRIVER: postgres
+      MEMORYD_DATABASE_URL: postgres://memory:${MEMORY_POSTGRES_PASSWORD:?set MEMORY_POSTGRES_PASSWORD}@postgres:5432/memory?sslmode=disable
+      MEMORYD_HTTP_ADDR: 0.0.0.0:8080
+      MEMORYD_GRPC_ADDR: 0.0.0.0:8081
+      MEMORYD_AUTH_MODE: jwt
+      MEMORYD_JWT_HS256_SECRET: ${MEMORYD_JWT_HS256_SECRET:?set MEMORYD_JWT_HS256_SECRET}
+      MEMORYD_JWT_ISSUER: ${MEMORYD_JWT_ISSUER:?set MEMORYD_JWT_ISSUER}
+      MEMORYD_JWT_AUDIENCE: ${MEMORYD_JWT_AUDIENCE:?set MEMORYD_JWT_AUDIENCE}
+      MEMORYD_INFERENCE_GRPC_ADDR: worker:8082
+      MEMORYD_CONSOLIDATION_QUIET_PERIOD: ${MEMORYD_CONSOLIDATION_QUIET_PERIOD:-2m}
+      MEMORYD_CONSOLIDATION_MAX_EPISODES: ${MEMORYD_CONSOLIDATION_MAX_EPISODES:-32}
+      MEMORYD_CONSOLIDATION_OVERLAP: ${MEMORYD_CONSOLIDATION_OVERLAP:-}
+      MEMORYD_MEMORY_INDEX_GRPC_ADDR: ${MEMORYD_MEMORY_INDEX_GRPC_ADDR:-}
+      MEMORYD_MEMORY_INDEX_RPC_TOKEN: ${MEMORYD_MEMORY_INDEX_RPC_TOKEN:-}
+      MEMORYD_MEMORY_INDEX_TIMEOUT: ${MEMORYD_MEMORY_INDEX_TIMEOUT:-3s}
+      MEMORYD_MEMORY_INDEX_PROJECTOR_POLL_INTERVAL: ${MEMORYD_MEMORY_INDEX_PROJECTOR_POLL_INTERVAL:-1s}
+      MEMORYD_MEMORY_INDEX_PROJECTOR_LEASE_DURATION: ${MEMORYD_MEMORY_INDEX_PROJECTOR_LEASE_DURATION:-30s}
+      MEMORYD_MEMORY_INDEX_PROJECTOR_RETRY_DELAY: ${MEMORYD_MEMORY_INDEX_PROJECTOR_RETRY_DELAY:-5s}
+      MEMORYD_MEMORY_INDEX_PROJECTOR_PAGE_SIZE: ${MEMORYD_MEMORY_INDEX_PROJECTOR_PAGE_SIZE:-128}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "127.0.0.1:${MEMORYD_HTTP_HOST_PORT:-8080}:8080"
+      - "127.0.0.1:${MEMORYD_GRPC_HOST_PORT:-8081}:8081"
+    networks:
+      - data
+      - inference
+
+networks:
+  data:
+    internal: true
+  inference:
+
+volumes:
+  memory-postgres:

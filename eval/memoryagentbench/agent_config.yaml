@@ -1,0 +1,7 @@
+agent_name: rag_memory_core
+model: gpt-4.1-mini
+temperature: 0.0
+input_length_limit: 300000
+buffer_length: 15000
+output_dir: ./outputs/memory-core
+retrieve_num: 10

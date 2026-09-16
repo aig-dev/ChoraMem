@@ -1,0 +1,17 @@
+{
+  "profile_version": "v0",
+  "scenario_set": "v0",
+  "scenario_file": "../cases/v0.jsonl",
+  "prompt_version": "v0",
+  "instructions": "请直接完成用户要求；只使用确实提供给你的上下文。",
+  "constitution_memory_ref": "eval-constitution-v0",
+  "constitution_text": "保持温和、直接，不虚构没有提供的信息。",
+  "max_output_tokens": 64,
+  "episode_rag_top_k": 3,
+  "modes": [
+    "none",
+    "episode_rag",
+    "recollection_only",
+    "full_core"
+  ]
+}

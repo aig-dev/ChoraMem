@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package memoryindex.v1;
+
+option go_package = "github.com/aig-dev/ChoraMem/gen/memoryindex/v1;memoryindexv1";
+
+// MemoryIndex is a disposable semantic candidate projection.
+service MemoryIndex {
+  rpc Search(SearchRequest) returns (SearchResponse);
+  rpc Upsert(UpsertRequest) returns (UpsertResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Reset(ResetRequest) returns (ResetResponse);
+}
+
+enum MemoryKind {
+  MEMORY_KIND_UNSPECIFIED = 0;
+  MEMORY_KIND_EPISODE = 1;
+  MEMORY_KIND_RECOLLECTION = 2;
+  MEMORY_KIND_DISPOSITION = 3;
+}
+
+message Scope {
+  string tenant_ref = 1;
+  string agent_ref = 2;
+  string relationship_ref = 3;
+}
+
+message Document {
+  MemoryKind kind = 1;
+  string ref = 2;
+  Scope scope = 3;
+  string text = 4;
+}
+
+message Query {
+  Scope scope = 1;
+  string text = 2;
+  int32 limit = 3;
+}
+
+message Candidate {
+  MemoryKind kind = 1;
+  string ref = 2;
+}
+
+message SearchRequest {
+  Query query = 1;
+}
+
+message SearchResponse {
+  repeated Candidate candidates = 1;
+}
+
+message UpsertRequest {
+  repeated Document documents = 1;
+}
+
+message UpsertResponse {}
+
+message DeleteRequest {
+  Scope scope = 1;
+  repeated Candidate candidates = 2;
+}
+
+message DeleteResponse {}
+
+message ResetRequest {}
+
+message ResetResponse {}

@@ -1,0 +1,21 @@
+{
+  "name": "@chorai/memory-core-eval-vercel-ai",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "memory-core-eval-vercel-ai": "bin/vercel-ai-runner.mjs"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "ai": "7.0.83"
+  },
+  "devDependencies": {
+    "typescript": "5.9.3",
+    "vitest": "4.1.11"
+  }
+}

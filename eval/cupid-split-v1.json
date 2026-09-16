@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "benchmark": "CUPID",
+  "status": "frozen-before-semantic-inspection",
+  "frozen_at": "2026-09-13",
+  "dataset": {
+    "repository": "kixlab/CUPID",
+    "revision": "f6e5fdae9b31f2b400d6ceb281a6a6760cc00309",
+    "file": "test.parquet",
+    "size_bytes": 12805250,
+    "sha256": "6d68af09f7fbe52df0a3bd621604104696d0f481f166be5c06dd65bbb089aaae",
+    "expected_rows": 756,
+    "expected_personas": 252,
+    "expected_rows_per_persona": 3,
+    "expected_sessions_per_instance": 8,
+    "expected_instance_types": [
+      "changing",
+      "consistent",
+      "contrastive"
+    ]
+  },
+  "upstream_evaluator": {
+    "repository": "kixlab/CUPID",
+    "revision": "a8560cab293ae98be4fe260689d58bddf96b51ef"
+  },
+  "split": {
+    "unit": "persona_id",
+    "salt": "memory-core-cupid-persona-v1-20260913",
+    "ordering": "ascending (sha256(utf8(salt + ':' + persona_id)), persona_id)",
+    "assignment": {
+      "dev": "all exposed_personas, then the first 83 otherwise-unassigned personas",
+      "H1": "the next 84 personas",
+      "H2": "the final 84 personas"
+    },
+    "expected_personas": {
+      "dev": 84,
+      "H1": 84,
+      "H2": 84
+    },
+    "materialized_from_identity_columns_only": {
+      "dev": {
+        "personas": 84,
+        "rows": 252,
+        "persona_ids_sha256": "90ed927fae1a52e6d996e8b8734e639fdf7a62afd316c24dba47bcebc25188c8"
+      },
+      "H1": {
+        "personas": 84,
+        "rows": 252,
+        "persona_ids_sha256": "3eedbc91150c0e3fbd4367f42f10f244bde13dd0835f2ff9ee249564a94265fe"
+      },
+      "H2": {
+        "personas": 84,
+        "rows": 252,
+        "persona_ids_sha256": "54c823432935d294e247038d7daf3bcbf8a3ee1a0373def2bdd3ec2bde7dd4e7"
+      },
+      "overlap": 0,
+      "instance_types_per_split": {
+        "consistent": 84,
+        "contrastive": 84,
+        "changing": 84
+      }
+    }
+  },
+  "exposure": {
+    "exposed_personas": [
+      "148+real_estate_developer"
+    ],
+    "reason": "A public dataset search result rendered one current_request before this manifest was written.",
+    "not_observed": [
+      "current_contextual_preference",
+      "current_checklist",
+      "prior_interactions",
+      "all other dataset rows"
+    ],
+    "rule": "Every exposed persona belongs to dev and can never enter H1 or H2."
+  }
+}

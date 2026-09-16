@@ -1,0 +1,71 @@
+{
+  "questions": 100,
+  "personas": 20,
+  "cohort": "development",
+  "modes": {
+    "evidence_off": {
+      "n": 100,
+      "correct": 31,
+      "accuracy": 0.31,
+      "invalid_answers": 0,
+      "nonempty_contexts": 98,
+      "contexts_with_episode_evidence": 0,
+      "delivered_episodes": 0,
+      "mean_memory_tokens": 136.73,
+      "max_memory_tokens": 234,
+      "p50_selection_ms": 67.23481300286949,
+      "p95_selection_ms": 102.7743750018999
+    },
+    "evidence_on": {
+      "n": 100,
+      "correct": 35,
+      "accuracy": 0.35,
+      "invalid_answers": 6,
+      "nonempty_contexts": 100,
+      "contexts_with_episode_evidence": 100,
+      "delivered_episodes": 613,
+      "mean_memory_tokens": 1870.01,
+      "max_memory_tokens": 2047,
+      "p50_selection_ms": 92.16266700241249,
+      "p95_selection_ms": 108.18099998869002
+    }
+  },
+  "paired_on_minus_off": {
+    "difference": 0.04,
+    "ci95": [
+      -0.05,
+      0.13
+    ],
+    "method": "2000 persona-cluster paired bootstrap samples; seed=0"
+  },
+  "changed_contexts": 100,
+  "unchanged_learned_selection": true,
+  "unchanged_learning": true,
+  "unchanged_old_control_prompt": true,
+  "evidence": {
+    "aligned_questions": 89,
+    "unaligned_questions": 11,
+    "selected_any_hit": 38,
+    "delivered_any_hit": 34,
+    "delivered_recall": 0.34269662921348315,
+    "delivered_hit_without_active_recollection_basis": 22
+  },
+  "usage": {
+    "calls": 100,
+    "input_tokens": 320005,
+    "output_tokens": 21975,
+    "finish_reasons": {
+      "stop": 100
+    },
+    "reused": 100,
+    "completed_call_p50_ms": 2445.4584999999997,
+    "completed_call_p95_ms": 4247.702,
+    "failed_attempts": 0
+  },
+  "selection_interruptions": 1,
+  "frozen_state": {
+    "episodes": 2155,
+    "jobs": 84,
+    "pending_jobs": 0
+  }
+}

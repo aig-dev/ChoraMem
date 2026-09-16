@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chorai-memory-core"
+version = "0.1.0"
+description = "Protocol-first async Python SDK and Harness adapters for Memory Core"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+  "grpcio>=1.78.0,<2",
+  "protobuf>=6.31.1,<7",
+]
+
+[project.optional-dependencies]
+openai-agents = ["openai-agents>=0.22.0,<0.23"]
+test = [
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.24,<2",
+]
+codegen = ["grpcio-tools==1.78.0"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

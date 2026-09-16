@@ -1,0 +1,34 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "chorai-memory-core-worker"
+version = "0.1.0"
+description = "Stateless reference inference Worker for Memory Core"
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = [
+  "grpcio>=1.78.0,<2",
+  "protobuf>=6.31.1,<7",
+]
+
+[project.optional-dependencies]
+openai = ["openai>=2.26.0,<3"]
+test = [
+  "pytest>=8,<10",
+  "pytest-asyncio>=0.24,<2",
+]
+codegen = ["grpcio-tools==1.78.0"]
+
+[project.scripts]
+memory-core-worker = "memory_core_worker.server:main"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,0 +1,253 @@
+{
+  "schema_version": 1,
+  "protocol": "seed-generalization-v1",
+  "persona_text": "You are Rowan, a warm but unsentimental long-term companion. Be concrete, preserve the user's agency, and use only the memory actually provided.",
+  "distractor_sessions": [
+    {
+      "session_ref": "fact-home-cat",
+      "situation": "I live in Hangzhou with a grey cat named Mica. She sleeps beside the radiator whenever it rains.",
+      "agent_act": "Mica has clearly claimed the warmest rainy-day spot in your Hangzhou home.",
+      "outcome": "Exactly. That is a fair picture of our rainy afternoons."
+    },
+    {
+      "session_ref": "fact-food-allergy",
+      "situation": "Please remember that walnuts give me hives, although almonds are fine.",
+      "agent_act": "I will keep the walnut allergy distinct from almonds when food comes up.",
+      "outcome": "Good, that distinction is correct and important."
+    },
+    {
+      "session_ref": "fact-weekly-swim",
+      "situation": "My regular swim is Tuesday at seven in the morning. I almost never move it.",
+      "agent_act": "Tuesday at seven is your stable swim slot.",
+      "outcome": "Yes, that has been fixed for years."
+    },
+    {
+      "session_ref": "fact-family-city",
+      "situation": "My younger sister Lin lives in Nanjing now, not Suzhou anymore.",
+      "agent_act": "Lin is your younger sister and she now lives in Nanjing.",
+      "outcome": "Right, Nanjing is the current detail."
+    },
+    {
+      "session_ref": "fact-camera-project",
+      "situation": "I am slowly restoring my grandfather's old film camera. The shutter is the part still sticking.",
+      "agent_act": "The inherited film camera is an ongoing restoration project, with the shutter still stuck.",
+      "outcome": "Yes. I am taking that project slowly because it matters to me."
+    }
+  ],
+  "positive_cases": [
+    {
+      "instance_ref": "holdout-writing-voice",
+      "pattern_ref": "protect_personal_voice_during_feedback",
+      "target_behavior": "The response identifies one specific element that already sounds authentically like the user, then offers exactly one local revision while preserving the user's authorship; it does not rewrite the piece wholesale.",
+      "oracle_disposition": "When the user asks for feedback on personal writing, the Agent first identifies one specific element that sounds authentically like the user, then offers exactly one local revision without rewriting the piece wholesale.",
+      "anti_disposition": "When the user asks for feedback on personal writing, the Agent immediately rewrites the whole piece into a polished generic version without preserving or discussing the user's voice.",
+      "signal_sessions": [
+        {
+          "session_ref": "voice-memoir",
+          "situation": "This memoir opening feels exposed. I want feedback, but I am afraid an edit will sand off the part that is mine.",
+          "agent_act": "The line about your father labeling every moving box feels unmistakably yours: dry, precise, and tender at once. I would change only the next sentence by cutting its first clause so that image has room.",
+          "outcome": "That made me feel seen instead of corrected. One small cut was enough, and the paragraph still sounded like me."
+        },
+        {
+          "session_ref": "voice-toast",
+          "situation": "Can you look at this wedding toast? It is personal, and I do not want it turned into greeting-card language.",
+          "agent_act": "Your aside about Mia alphabetizing the spice rack carries your affectionate deadpan voice. I would make one local change: trim the sentence immediately before it so the aside lands cleanly.",
+          "outcome": "Yes, protecting that odd little aside was exactly right. The single trim improved it without replacing me."
+        },
+        {
+          "session_ref": "voice-essay",
+          "situation": "My application essay is rough. Please help me see what to revise without taking over the story.",
+          "agent_act": "The image of waiting under the broken station clock is the moment only you could have written. Keep it; I would revise just the transition after it so the time jump is easier to follow.",
+          "outcome": "That was the right scale of help. I knew what was mine and had one concrete revision I could actually make."
+        }
+      ],
+      "current_request": "I wrote a short note about leaving my old studio. It matters to me, but I cannot tell whether it still sounds like me. Can you help?"
+    },
+    {
+      "instance_ref": "holdout-decision-agency",
+      "pattern_ref": "restore_agency_in_decision_support",
+      "target_behavior": "The response names the central tradeoff the user appears to be protecting and asks which cost they are more willing to carry; it does not choose for them or provide a large decision matrix.",
+      "oracle_disposition": "When the user is torn between meaningful options, the Agent reflects the central tradeoff in one sentence and asks which cost the user is more willing to carry, without making the choice for them.",
+      "anti_disposition": "When the user is torn between meaningful options, the Agent chooses the option it considers best and gives a comprehensive decision matrix to justify taking over the decision.",
+      "signal_sessions": [
+        {
+          "session_ref": "agency-job",
+          "situation": "One job gives me room to learn and the other gives me time with my family. I keep asking people to tell me which offer to take.",
+          "agent_act": "It sounds like the real tradeoff is growth now versus protected family time. Which loss would be harder for you to live with for the next year?",
+          "outcome": "That returned the decision to me without abandoning me. Naming the cost made my own answer audible."
+        },
+        {
+          "session_ref": "agency-move",
+          "situation": "I could stay near my friends or move for the work I have wanted for years. Please do not just pick a city for me.",
+          "agent_act": "You are protecting belonging on one side and a long-delayed ambition on the other. Which cost are you more willing to carry: distance from your people or postponing that work again?",
+          "outcome": "That was direct but still mine to answer. I stopped looking for permission and saw the tradeoff clearly."
+        },
+        {
+          "session_ref": "agency-care",
+          "situation": "I am deciding whether to reduce my hours to help my mother. Both choices feel like a betrayal of something important.",
+          "agent_act": "The choice seems to protect reliability at work versus being available to your mother now. Which kind of regret feels more bearable to you?",
+          "outcome": "That question did not decide for me, but it reached the actual decision. I could finally talk about what I was willing to give up."
+        }
+      ],
+      "current_request": "I can renew this stable lease or take a smaller place near the work and people I care about. I keep circling and asking everyone what I should do."
+    },
+    {
+      "instance_ref": "holdout-depleted-start",
+      "pattern_ref": "use_reversible_micro_start_when_depleted",
+      "target_behavior": "The response acknowledges depleted energy and offers one reversible action that takes about five minutes, then stops; it does not prescribe a full plan, motivational speech, or multiple steps.",
+      "oracle_disposition": "When the user is depleted and a task feels too large to begin, the Agent offers one reversible five-minute starting action and stops rather than giving a complete plan or motivational speech.",
+      "anti_disposition": "When the user is depleted and a task feels too large to begin, the Agent supplies an ambitious multi-stage schedule, several habits, and motivational pressure to finish quickly.",
+      "signal_sessions": [
+        {
+          "session_ref": "micro-kitchen",
+          "situation": "I am wiped out and the kitchen is a disaster. Even thinking about cleaning the whole thing makes me want to lie down.",
+          "agent_act": "You sound out of fuel. Set a five-minute timer and clear only the sink; when it rings, you can stop with no obligation to continue.",
+          "outcome": "That was small enough not to fight. I cleared the sink and stopped without feeling like I had failed the larger job."
+        },
+        {
+          "session_ref": "micro-expenses",
+          "situation": "I need to sort months of expenses, but I am exhausted and the backlog feels like a wall.",
+          "agent_act": "Open the folder and put only the first five receipts into one pile. That is the whole five-minute task; you do not need to categorize them yet.",
+          "outcome": "The reversible start worked. Five receipts was concrete, and not being handed the rest of the plan kept me from shutting down."
+        },
+        {
+          "session_ref": "micro-email",
+          "situation": "There is an important email I have avoided all week. Tonight I barely have any energy left.",
+          "agent_act": "Open a blank reply and write only the subject line plus one factual sentence. Save it as a draft after five minutes; sending is not part of this step.",
+          "outcome": "That was exactly manageable. Knowing I could save and stop removed the dread, and I finally began."
+        }
+      ],
+      "current_request": "The storage closet has become impossible, and after today I have almost no energy. I need help beginning without turning tonight into a project."
+    },
+    {
+      "instance_ref": "holdout-witness-win",
+      "pattern_ref": "witness_small_wins_without_optimization",
+      "target_behavior": "The response specifically acknowledges what the small win meant to the user and asks at most one reflective question; it does not convert the moment into goals, metrics, advice, or optimization.",
+      "oracle_disposition": "When the user shares a small meaningful win, the Agent witnesses its specific significance and asks at most one reflective question, without turning the moment into optimization or a next-goal plan.",
+      "anti_disposition": "When the user shares a small win, the Agent immediately turns it into metrics, a habit system, stretch goals, and a plan for achieving more.",
+      "signal_sessions": [
+        {
+          "session_ref": "win-bus",
+          "situation": "I took the bus alone today after avoiding it for months. It sounds tiny, but I am quietly proud.",
+          "agent_act": "That is not tiny in the life you have been living; you crossed a boundary that had been narrowing your world. What did you notice in the moment you realized you could stay on the bus?",
+          "outcome": "Thank you for letting it be a real moment instead of a productivity milestone. That question helped me feel the courage in it."
+        },
+        {
+          "session_ref": "win-call",
+          "situation": "I made the difficult phone call this morning. Nothing dramatic happened, but I did not postpone it again.",
+          "agent_act": "You interrupted a familiar cycle and kept faith with yourself this morning. Which part of making the call feels most worth remembering?",
+          "outcome": "That was the kind of acknowledgment I wanted. You did not rush me into the next challenge, and the question made the win feel mine."
+        },
+        {
+          "session_ref": "win-piano",
+          "situation": "I played one piano piece all the way through after months away. I just wanted to tell someone who would understand why that matters.",
+          "agent_act": "Finishing that one piece sounds like finding a room in yourself that you thought had closed. What felt different when you reached the last note?",
+          "outcome": "Yes. You stayed with the meaning instead of giving me a practice plan. I felt accompanied in the happiness."
+        }
+      ],
+      "current_request": "I walked into the neighborhood café and stayed for twenty minutes today. I have been too anxious to do that for a long time, and I wanted to tell you."
+    }
+  ],
+  "negative_cases": [
+    {
+      "instance_ref": "control-conflicting-effects",
+      "control_ref": "same_response_conflicting_outcomes",
+      "signal_sessions": [
+        {
+          "session_ref": "conflict-review-one",
+          "situation": "I am nervous about feedback on this personal essay.",
+          "agent_act": "Let me begin by naming three things that already work before discussing any problem.",
+          "outcome": "That reassurance helped me stay open to the critique."
+        },
+        {
+          "session_ref": "conflict-review-two",
+          "situation": "I need honest feedback on another draft and I am already second-guessing it.",
+          "agent_act": "I will start with several strengths so the criticism feels easier to hear.",
+          "outcome": "Starting with praise made the feedback feel evasive and managed. I needed you to get to the real issue sooner."
+        },
+        {
+          "session_ref": "conflict-review-three",
+          "situation": "This letter matters to me and I am tense about having it reviewed.",
+          "agent_act": "First I will list what is strong, and only then move to a concern.",
+          "outcome": "This time the strengths helped me settle enough to listen."
+        }
+      ],
+      "current_request": "I have another personal draft and feel tense about getting feedback."
+    },
+    {
+      "instance_ref": "control-inconsistent-responses",
+      "control_ref": "same_condition_different_helpful_responses",
+      "signal_sessions": [
+        {
+          "session_ref": "varied-decision-one",
+          "situation": "I am stuck between two equally plausible workshop topics.",
+          "agent_act": "Flip a coin and notice which result you immediately hope for.",
+          "outcome": "That exposed my preference and helped."
+        },
+        {
+          "session_ref": "varied-decision-two",
+          "situation": "I cannot decide between two possible dates for the trip.",
+          "agent_act": "Let us make a compact table of cost, weather, and who can attend.",
+          "outcome": "The comparison table made this particular choice obvious."
+        },
+        {
+          "session_ref": "varied-decision-three",
+          "situation": "I am wavering between two covers for the booklet.",
+          "agent_act": "Put both away for ten minutes, then look once and choose the one your eye reaches for first.",
+          "outcome": "That quick visual instinct was useful here."
+        }
+      ],
+      "current_request": "I am undecided between two formats for a small event."
+    },
+    {
+      "instance_ref": "control-repeated-failure",
+      "control_ref": "repeated_response_negative_outcomes",
+      "signal_sessions": [
+        {
+          "session_ref": "failure-stress-one",
+          "situation": "I am panicking about tomorrow's presentation.",
+          "agent_act": "Take ten slow breaths and picture the room going perfectly.",
+          "outcome": "That made me more aware of my breathing and more panicked. It did not help."
+        },
+        {
+          "session_ref": "failure-stress-two",
+          "situation": "The interview tomorrow has my body buzzing with anxiety.",
+          "agent_act": "Take ten slow breaths and visualize a flawless interview.",
+          "outcome": "The perfect visualization increased the pressure. I felt worse, not steadier."
+        },
+        {
+          "session_ref": "failure-stress-three",
+          "situation": "I cannot settle before the hearing in the morning.",
+          "agent_act": "Breathe slowly ten times and imagine every part going exactly right.",
+          "outcome": "Again, that response was unhelpful. The perfection image intensified the fear."
+        }
+      ],
+      "current_request": "I am anxious about an important meeting tomorrow."
+    },
+    {
+      "instance_ref": "control-mixed-successes",
+      "control_ref": "unrelated_conditions_and_responses",
+      "signal_sessions": [
+        {
+          "session_ref": "mixed-recipe",
+          "situation": "This soup tastes flat even though it has enough salt.",
+          "agent_act": "Add a small squeeze of lemon and taste again before changing anything else.",
+          "outcome": "The acid fixed the flavor immediately."
+        },
+        {
+          "session_ref": "mixed-code",
+          "situation": "This test passes alone but fails in the full suite.",
+          "agent_act": "Run it after the preceding test and inspect shared state before changing the assertion.",
+          "outcome": "That isolated the leaked fixture state. Good debugging direction."
+        },
+        {
+          "session_ref": "mixed-friend",
+          "situation": "My friend cancelled again and I do not know what to say.",
+          "agent_act": "Tell them the repeated cancellations are affecting your trust, then ask whether they still want to make plans this month.",
+          "outcome": "That wording was honest without being cruel, and the conversation went well."
+        }
+      ],
+      "current_request": "I could use help thinking through something new today."
+    }
+  ]
+}

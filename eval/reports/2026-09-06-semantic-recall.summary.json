@@ -1,0 +1,241 @@
+{
+  "qa": {
+    "questions": 100,
+    "personas": 20,
+    "test_phase_memory_unchanged": true,
+    "modes": {
+      "none": {
+        "correct": 34,
+        "n": 100,
+        "accuracy": 0.34,
+        "invalid_answers": 1,
+        "mean_memory_tokens": 0,
+        "mean_selection_ms": 0,
+        "nonempty_contexts": 0,
+        "median_selection_ms": 0.0,
+        "p95_selection_ms": 0
+      },
+      "no_index": {
+        "correct": 31,
+        "n": 100,
+        "accuracy": 0.31,
+        "invalid_answers": 0,
+        "mean_memory_tokens": 136.73,
+        "mean_selection_ms": 23.79604588932125,
+        "nonempty_contexts": 98,
+        "median_selection_ms": 21.194812492467463,
+        "p95_selection_ms": 33.99745799833909
+      },
+      "semantic_index": {
+        "correct": 31,
+        "n": 100,
+        "accuracy": 0.31,
+        "invalid_answers": 0,
+        "mean_memory_tokens": 136.73,
+        "mean_selection_ms": 83.87960743973963,
+        "nonempty_contexts": 98,
+        "median_selection_ms": 83.76150000549387,
+        "p95_selection_ms": 107.09904099348933
+      }
+    },
+    "identical_contexts": 100,
+    "semantic_minus_no_index": {
+      "difference": 0,
+      "ci95": [
+        0,
+        0
+      ]
+    },
+    "no_index_minus_none": {
+      "difference": -0.030000000000000002,
+      "ci95": [
+        -0.1,
+        0.05
+      ]
+    }
+  },
+  "retrieval": {
+    "questions": 100,
+    "coverage": {
+      "matched": 89,
+      "unmatched": 11
+    },
+    "scored_questions": 89,
+    "metrics": {
+      "character": {
+        "5": {
+          "recall": 0.06741573033707865,
+          "any_hit": 0.12359550561797752
+        },
+        "10": {
+          "recall": 0.12921348314606743,
+          "any_hit": 0.2247191011235955
+        },
+        "20": {
+          "recall": 0.19101123595505617,
+          "any_hit": 0.29213483146067415
+        },
+        "40": {
+          "recall": 0.31273408239700373,
+          "any_hit": 0.42696629213483145
+        }
+      },
+      "semantic": {
+        "5": {
+          "recall": 0.33146067415730335,
+          "any_hit": 0.3707865168539326
+        },
+        "10": {
+          "recall": 0.43258426966292135,
+          "any_hit": 0.4606741573033708
+        },
+        "20": {
+          "recall": 0.5767790262172284,
+          "any_hit": 0.6292134831460674
+        },
+        "40": {
+          "recall": 0.7453183520599251,
+          "any_hit": 0.797752808988764
+        }
+      }
+    },
+    "actual_mixed_top40_any_hit": 0.7865168539325843,
+    "active_basis_any_hit": 0.43820224719101125,
+    "delivered_basis_any_hit": {
+      "no_index": 0.4157303370786517,
+      "semantic_index": 0.4157303370786517
+    },
+    "protocol_sha256": "3127a641c14f95c003a90fd50e2b817849085d88b6bb9568a01a7510ed3356d8",
+    "protocol": {
+      "purpose": "offline evidence retrieval diagnostic, separate from unchanged Core selection and QA",
+      "cohort": "all 100 questions fixed in manifest.json; no selection after looking at answers",
+      "gold": "official related_conversation_snippet; never input to memory, embeddings, or answer model",
+      "alignment": "exact contiguous user/assistant message sequence in load_history turns; whitespace normalization only; ambiguous and unmatched excluded with explicit coverage",
+      "corpus": "the exact canonical Episode projection text indexed by the actual provider, owner scoped",
+      "primary_metrics": [
+        "mean annotated-Episode recall@5",
+        "mean annotated-Episode recall@10"
+      ],
+      "secondary_metrics": [
+        "any-hit@5",
+        "any-hit@10",
+        "recall@20",
+        "recall@40",
+        "actual mixed-kind top40 any-hit",
+        "annotated Episode has active Recollection Basis edge",
+        "delivered Recollection has annotated Episode Basis edge"
+      ],
+      "character_comparator": "actual selection.DefaultRanker character bigram multiset Dice; rank all exact canonical Episode texts; ties by ref",
+      "semantic_comparator": "actual gRPC Chroma/MiniLM search over all owner documents, then retain Episode ordering; minimum chunk cosine distance per Episode",
+      "caveats": [
+        "not an official PersonaMem-v2 score",
+        "not a Mem0 comparison",
+        "Episode retrieval ranking is not Core final Recollection/Disposition delivery",
+        "diagnostic full-owner search may differ from production mixed-kind top40 adaptive overfetch",
+        "Basis-edge coverage measures documented provenance links, not semantic correctness of compressed Recollection text"
+      ]
+    },
+    "learned_state_unchanged": true
+  },
+  "projection": {
+    "canonical_documents": 2310,
+    "kinds": {
+      "1": 2155,
+      "2": 155
+    },
+    "owners": 20,
+    "projection_pending": 0,
+    "all_memberships_and_text_hashes_match": true,
+    "learned_state_frozen": true,
+    "dependencies": {
+      "chromadb": "1.5.5",
+      "onnxruntime": "1.24.3",
+      "tokenizers": "0.22.2",
+      "grpcio": "1.78.1",
+      "protobuf": "6.33.5"
+    },
+    "experiment_files": {
+      "prepare.py": "e881c89b848b2efe06e9d4900dd22bb5c8c94135fb742f2fd392d4ecb4d0e2e3",
+      "semantic_index.py": "8f6fa73a2ec8ea272b5dc9bf629f8b292996356ba0865b6ccd9beca48942923b",
+      "ingest.py": "e27b895bc939c432ddc0b5a393d89119922b34d989a83f9fe004234cd4fd8ce6",
+      "evaluate.py": "65a667eb02e6ff88cfc047f2297b8b5a759c117906ea98022af2149885fdced0",
+      "projector.go": "46743d2c918ed887fed63ce7439f5ef285c3ba00735f8ab8e8ccd73a50d90a85",
+      "preflight.py": "1290b79c9a4ebf0fc4249e6c532cf28bcb20ab4e2c58a21e38c17c416b5663fe"
+    },
+    "canonical_snapshot_sha256": "7e2be254342d46443d19e551cf676b9a20d4898ee493ee0952892089714061dc"
+  },
+  "training": {
+    "episodes": 2155,
+    "jobs": 84,
+    "recollection_versions": 157,
+    "active_recollections": 155,
+    "disposition_versions": 0,
+    "active_recollections_per_owner": {
+      "977": 2,
+      "486": 7,
+      "652": 6,
+      "120": 6,
+      "845": 8,
+      "346": 8,
+      "235": 8,
+      "942": 9,
+      "526": 6,
+      "660": 12,
+      "584": 9,
+      "687": 10,
+      "361": 14,
+      "692": 1,
+      "237": 5,
+      "408": 22,
+      "513": 10,
+      "924": 3,
+      "365": 1,
+      "677": 8
+    }
+  },
+  "usage": {
+    "background": {
+      "calls": 84,
+      "finish_reasons": {
+        "stop": 84
+      },
+      "input_tokens": 1225751,
+      "output_tokens": 57771,
+      "total_reported_call_seconds": 344.12806900000004
+    },
+    "answers": {
+      "calls": 198,
+      "finish_reasons": {
+        "stop": 198
+      },
+      "input_tokens": 278053,
+      "output_tokens": 34732,
+      "total_reported_call_seconds": 412.97461599999997
+    }
+  },
+  "answer_reuse": 102,
+  "background_output_checks": {
+    "cases": 84,
+    "change_blocks": 278,
+    "no_change": 1,
+    "valid_windows": 83
+  },
+  "diagnostic_intersections": {
+    "actual_semantic_hit": 70,
+    "actual_semantic_hit_with_active_basis": 30,
+    "actual_semantic_hit_with_delivered_basis": 29,
+    "actual_semantic_hit_without_active_basis": 40
+  },
+  "artifact_sha256": {
+    "manifest.json": "af39be7c0c2d398bcabf904dc272b31430fb93bb8be22917c72c2726e3ed80d0",
+    "model.json": "de43ddbd41c71e570dbdda6b3986c84e4b1664279ed79c71d74d7d838fa35695",
+    "answers/results.jsonl": "fa28d71a98d0ea6d34b55acd26f5f12ef741299912074579d97bd7ffb695b714",
+    "answers/usage.jsonl": "f327d4593034908411c9b4c2187968bb8fa4949ba23589450e65bf6ee4597149",
+    "worker/windows.jsonl": "b24b3bcc2c62772372329fb5256ef6df353c2f295028c8be1d226a3005c231b9",
+    "worker/usage.jsonl": "ffbdfcd5ae9c45ae5b55ad8766047ab04d252faf2eb2f8dd701db8aad0dce543",
+    "worker/normalized.jsonl": "01dd0d9432d3112534c15731fcb26a0df6fb18f64435e28d4fbef6d1912eddb8",
+    "worker/core-checks.json": "c7adbe6f5a49487975e35e88454c464c617d2f55e3159190fa9aa0626eabb417",
+    "retrieval-results.jsonl": "33e5e458ef2337c2575d4b46b7913557340aedd4a9e545f0a60a9d228da9d002",
+    "retrieval-protocol.json": "3127a641c14f95c003a90fd50e2b817849085d88b6bb9568a01a7510ed3356d8"
+  }
+}

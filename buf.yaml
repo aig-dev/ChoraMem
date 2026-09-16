@@ -1,0 +1,14 @@
+version: v2
+modules:
+  - path: api
+lint:
+  use:
+    - STANDARD
+  except:
+    # Frozen domain response names are part of the V1 public contract.
+    - RPC_REQUEST_STANDARD_NAME
+    - RPC_RESPONSE_STANDARD_NAME
+    - SERVICE_SUFFIX
+breaking:
+  use:
+    - FILE
