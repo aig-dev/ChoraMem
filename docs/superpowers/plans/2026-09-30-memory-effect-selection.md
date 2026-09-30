@@ -38,13 +38,22 @@
 - Consumes: `Select([]Query, []Candidate, Ranker, Policy) ([]Activation, error)` and existing `Policy.MinimumScore`.
 - Produces: unchanged public signatures; only positive inhibition scores at or above the contextual minimum may compete.
 
-- [ ] Write `TestSelectIgnoresUnrelatedInhibitionForSemanticDisposition` with semantic hit, zero lexical support, valid unrelated inhibition and expected one activation. Cover both zero and below-minimum inhibition and a zero policy minimum. Include a relevant at-minimum inhibition case expecting none.
-- [ ] Run `go test ./internal/core/selection -run TestSelectIgnoresUnrelatedInhibitionForSemanticDisposition -count=1 -v`; expected RED because zero/below-minimum inhibition currently vetoes.
-- [ ] Add the positive-and-minimum relevance requirement before support/inhibition comparison. Increment the default policy ref to identify changed selection behavior.
-- [ ] Run `go test ./internal/core/selection -count=1`; expected PASS, including existing tie/strong-inhibition cases.
-- [ ] Document the relevance gate and update G1's actual evidence record; run `gofmt` and `git diff --check`.
-- [ ] Commit this bounded change and perform fresh-context review under executing-plans. Do not mark the five-direction goal complete.
+- [x] Write `TestSelectIgnoresUnrelatedInhibitionForSemanticDisposition` with semantic hit, zero lexical support, valid unrelated inhibition and expected one activation. Cover both zero and below-minimum inhibition and a zero policy minimum. Include a relevant at-minimum inhibition case expecting none.
+- [x] Run `go test ./internal/core/selection -run TestSelectIgnoresUnrelatedInhibitionForSemanticDisposition -count=1 -v`; expected RED because zero/below-minimum inhibition currently vetoes.
+- [x] Add the positive-and-minimum relevance requirement before support/inhibition comparison. Increment the default policy ref to identify changed selection behavior.
+- [x] Run `go test ./internal/core/selection -count=1`; expected PASS, including existing tie/strong-inhibition cases.
+- [x] Document the relevance gate and update G1's actual evidence record; run `gofmt` and `git diff --check`.
+- [x] Commit this bounded change and perform fresh-context review under executing-plans. Do not mark the five-direction goal complete.
 
 ## Self-review
 
 G1 scope and existing policy semantics are sufficient. This task does not fix the broader semantic ranking quality or claim behavior uplift; those stay in G4 and the shared effect gate. No shared interfaces with later tasks change.
+
+## Execution evidence
+
+- Implementation commit: `1d6bbfc`.
+- RED: four unrelated/subthreshold/cross-language cases failed before the implementation; relevant-inhibition controls passed.
+- GREEN: `go test ./internal/core/selection -count=1` and `go test -count=1 ./...` passed. `git diff --check` passed.
+- Fresh-context independent review of `82a657c..1d6bbfc`: no Critical, Important or Minor findings; the reviewer independently repeated both Go checks and the diff check. Live database integration was not separately established.
+- Final ruling: broader lexical/semantic calibration, index-path precedence and query-wide maximum inhibition remain outside this bounded fix because no new failure was established here. They remain subject to G4 diagnosis; the cost of this boundary is that this fix alone cannot establish general retrieval quality or behavioral uplift.
+- Deferred minors: none. Parent goal remains active for G2–G5 and shared behavioral validation.

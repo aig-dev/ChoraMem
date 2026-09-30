@@ -53,6 +53,8 @@
 
 **最小变化：**沿现有中立端口映射公开字段；把同一角色快照绑定 Situation intake 与 Select；历史 Episode 在显式有界预算内进入 sealed RunContext，实际渲染的 refs 才进入 Delivery。
 
+**执行前已定位的约束：**同一条真实用户消息可能先成为上一轮 Outcome，再成为下一轮 Situation。Core 按物理 `source_ref` 冻结 Constitution（包括未知）；只在 Situation 中补取当前角色会与已记录的 Outcome 冲突。异步重试也不能重新取当前值覆盖原快照。后续实现须先确定现有 durable intake 如何复用该快照，保持相同 source_ref；不能通过给不同用途制造假来源、放宽 Core 不可变校验来消除冲突。EpisodeEvidence 的公开映射可作为独立子步骤推进。
+
 **工程验收：**
 
 - 默认预算明确，有界、完整、不截断；非法预算／空引用／重复引用／跨类别重复被拒绝。
@@ -149,8 +151,8 @@
 
 | 方向 | 状态 | 交付与验证 |
 |---|---|---|
-| G1 | 工程修复通过，待独立审查 | [选择器计划](../plans/2026-09-30-memory-effect-selection.md)；RED→GREEN 覆盖零分、低于门槛、零 minimum 与跨语言语义命中；`go test ./internal/core/selection -count=1`、`go test -count=1 ./...` PASS |
-| G2 | 待执行 | 公开字段、durable snapshot、Chat／Proactive／assembly／Delivery 全链路 |
+| G1 | 工程修复与独立审查通过；共同效果待验证 | [选择器计划与证据](../plans/2026-09-30-memory-effect-selection.md)；修复 `1d6bbfc`；RED→GREEN 覆盖零分、低于门槛、零 minimum 与跨语言语义命中；选择器与完整 Go suite PASS；独立审查无阻断项 |
+| G2 | 接线缺口和来源快照冲突已定位，待实现 | 公开字段、durable snapshot、Chat／Proactive／assembly／Delivery 全链路；先复用真实来源快照，再扩展接线 |
 | G3 | 待执行 | 因果关联与语义效果分别验收，保持现有资格 |
 | G4 | 待执行 | 先诊断未见条件与候选损失，再改机制 |
 | G5 | 待执行 | 合同一致性、混合事实覆盖、失败原因与调用预算 |
