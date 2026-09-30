@@ -149,7 +149,7 @@
 
 | 方向 | 状态 | 交付与验证 |
 |---|---|---|
-| G1 | 执行中 | [选择器计划](../plans/2026-09-30-memory-effect-selection.md)；已在分析阶段用只读 overlay 复现零相关抑制 |
+| G1 | 工程修复通过，待独立审查 | [选择器计划](../plans/2026-09-30-memory-effect-selection.md)；RED→GREEN 覆盖零分、低于门槛、零 minimum 与跨语言语义命中；`go test ./internal/core/selection -count=1`、`go test -count=1 ./...` PASS |
 | G2 | 待执行 | 公开字段、durable snapshot、Chat／Proactive／assembly／Delivery 全链路 |
 | G3 | 待执行 | 因果关联与语义效果分别验收，保持现有资格 |
 | G4 | 待执行 | 先诊断未见条件与候选损失，再改机制 |

@@ -24,7 +24,7 @@ func DefaultRanker() Ranker {
 // DefaultPolicy returns a value so callers cannot mutate shared policy state.
 func DefaultPolicy() Policy {
 	return Policy{
-		Ref:                             "indexed-support-episode-latin-term-cjk-bigram-v6",
+		Ref:                             "indexed-support-episode-contextual-inhibition-v7",
 		MinimumScore:                    0.2,
 		MaxRecollections:                8,
 		MaxDispositions:                 8,

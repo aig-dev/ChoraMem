@@ -289,6 +289,60 @@ func TestSelectPreservesDirectSemanticIndexOrderAheadOfLexicalFallback(t *testin
 	}
 }
 
+func TestSelectIgnoresUnrelatedInhibitionForSemanticDisposition(t *testing.T) {
+	cases := []struct {
+		name       string
+		minimum    float64
+		inhibition float64
+		want       int
+	}{
+		{name: "zero relevance", minimum: 0.2, inhibition: 0, want: 1},
+		{name: "below contextual minimum", minimum: 0.2, inhibition: 0.1, want: 1},
+		{name: "zero minimum still requires relevance", minimum: 0, inhibition: 0, want: 1},
+		{name: "relevant at contextual minimum", minimum: 0.2, inhibition: 0.2, want: 0},
+		{name: "relevant above contextual minimum", minimum: 0.2, inhibition: 0.8, want: 0},
+	}
+	for _, test := range cases {
+		t.Run(test.name, func(t *testing.T) {
+			queries := []Query{{Ref: "query-source", Text: "current"}}
+			item := Candidate{
+				Kind: CandidateDisposition, VersionRef: "seed-v1", Text: "tendency",
+				Support:      []Anchor{{EpisodeRef: "positive-episode", SourceRef: "positive-source", Text: "positive situation"}},
+				Inhibition:   []Anchor{{EpisodeRef: "negative-episode", SourceRef: "negative-source", Text: "negative situation"}},
+				IndexMatches: []IndexMatch{{QuerySourceRef: "query-source", Rank: 0, LaneOrder: 0}},
+			}
+			scores := scoreTable{"current\x00negative situation": test.inhibition}
+			policy := DefaultPolicy()
+			policy.MinimumScore = test.minimum
+			got, err := Select(queries, []Candidate{item}, scores, policy)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if len(got) != test.want {
+				t.Fatalf("selected %d; want %d with contextual minimum %v and inhibition relevance %v", len(got), test.want, test.minimum, test.inhibition)
+			}
+		})
+	}
+
+	t.Run("cross-language semantic support with unrelated English inhibition", func(t *testing.T) {
+		queries := []Query{{Ref: "query-source", Text: "脑子像堵住了，什么都开始不了"}}
+		item := Candidate{
+			Kind: CandidateDisposition, VersionRef: "seed-v1",
+			Text:         "When overwhelmed, offer one manageable starting action.",
+			Support:      []Anchor{{EpisodeRef: "positive-episode", SourceRef: "positive-source", Text: "I feel overwhelmed"}},
+			Inhibition:   []Anchor{{EpisodeRef: "negative-episode", SourceRef: "negative-source", Text: "Travel booking should compare flights"}},
+			IndexMatches: []IndexMatch{{QuerySourceRef: "query-source", Rank: 0, LaneOrder: 0}},
+		}
+		got, err := Select(queries, []Candidate{item}, DefaultRanker(), DefaultPolicy())
+		if err != nil {
+			t.Fatal(err)
+		}
+		if len(got) != 1 || got[0].VersionRef != "seed-v1" {
+			t.Fatalf("Select() = %#v; want semantically matched Seed despite unrelated inhibition", got)
+		}
+	})
+}
+
 func TestSelectLetsSemanticIndexActivateDispositionButStillHonorsInhibition(t *testing.T) {
 	queries := []Query{{Ref: "query-source", Text: "overwhelmed complicated plan"}}
 	candidates := []Candidate{

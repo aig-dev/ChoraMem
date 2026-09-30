@@ -116,7 +116,10 @@ func Select(queries []Query, candidates []Candidate, ranker Ranker, policy Polic
 			continue
 		}
 		if candidate.Kind == CandidateDisposition {
-			if inhibition, exists := bestInhibition(queries, candidate.Inhibition, ranker); exists && path.score <= inhibition {
+			// A semantic hit can have zero lexical support. An unrelated or
+			// below-threshold counterexample must not become a contextual veto.
+			if inhibition, exists := bestInhibition(queries, candidate.Inhibition, ranker); exists &&
+				inhibition > 0 && inhibition >= policy.MinimumScore && path.score <= inhibition {
 				continue
 			}
 		}

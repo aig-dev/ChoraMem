@@ -215,7 +215,7 @@ Select 的顺序是：
 5. 无直接语义命中时，Latin 空格文本按去除结构词后的 topic-term overlap 保底，
    中文等无词边界文本使用字符 bigram；
 6. MemoryIndex 直接命中的 Disposition，或命中的 exact live support Episode 所连接的 Disposition，保留 Provider 的瞬时语义路径；其他 Disposition 仍以自身 tendency 与 support／inhibition 情境做确定性关联，任何同窗口兄弟 Memory 都不能继承命中；
-7. inhibition 胜或平则局部压制，support 严格胜出才激活；
+7. inhibition 必须具有正相关性且达到当前选择的 minimum relevance，才参与局部竞争；合格 inhibition 胜或平则局部压制，support 严格胜出才激活。语义命中的 support 字面分数可以为零，无关的零分或低于门槛的反例不能将其屏蔽；
 8. agent-scoped Seed 路由为 `SELF`，relationship-scoped Seed 路由为 `RELATION`；
 9. 冻结 `MemoryContext` 与本次选择的 activation provenance。
 
