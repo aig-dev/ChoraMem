@@ -1,0 +1,158 @@
+# ChoraMem 记忆效果优化 Goal
+
+日期：2026-09-30
+
+状态：执行中。用户已认可五个方向，并授权落档为 goal 后进行优化修复。
+
+## 目标与完成边界
+
+让有来源的经历在适当情境下改善未来理解与回应，并能在新证据出现后及时修正。分别验证具体经历的可访问性、Recollection 的理解与更新、Disposition 的条件迁移；不以“写出了记忆”代替行为效果。
+
+本 goal 分成五个可独立验收的方向。每个方向按“复现具体失败 → 最小修复 → 工程回归 → 行为诊断”推进。已正确工作的机制只补必要的覆盖证据，不为完成列表制造新模块。效果不明确时保留结论，不把工程通过写成产品优势。
+
+完成条件：五个方向的具体缺陷修复并通过对应回归；真实接线通过生命周期 smoke；未见轨迹的行为诊断具有完整 manifest、可辨识的 Oracle 对照和诚实的效果结论。若 Oracle 本身不能拉开基线，行为验证仍未完成，不以小样本多数票关闭 goal。
+
+## 最小因果模型与权威
+
+```text
+有身份和来源的经历 → Episode
+  → 可修订的 Recollection
+  → 跨独立经历支持的条件性 Disposition
+  → 有界 Episode 引用证据
+按当前 Situation 选择 → Harness 实际注入并记录准确 Delivery
+  → 实际 AgentAct → 真实外部反馈 → 理解修订／倾向修订／局部抑制
+```
+
+- `ChoraMem` 是 Core 源码与 Git 的唯一权威；Chorai 只消费公开协议／SDK。
+- Core 拥有长期因果账、写入资格、版本和提交；Harness 拥有 prompt、模型、行动与最终表达。
+- Episode 保存发生过什么；Recollection 保存可修订理解；Disposition 保存可能改变未来理解、关注与回应的潜在倾向。
+- Constitution 是外生、只读、来源绑定的角色快照，不能作为 learned Target 或 Basis。
+- 相邻回复提供记录关联，不自动证明回应效果或统计因果性；身份可信也不保证内容正确。
+- `REENACT` 表示实际再现，不表示用户认可；沉默、礼貌回应和 Agent 重复输出不是独立成功证据。
+
+## 五个优化方向
+
+### G1 情境召回与局部抑制
+
+**已复现失败：**语义索引命中可保留字面支持得分为 0 的 Seed；无关抑制记录的字面得分也为 0，`support <= inhibition` 把 `0 <= 0` 判为抑制。临时 Go overlay 探针得到同一候选 `selected: 1 → 0`。
+
+**最小变化：**抑制证据先满足当前情境的相关性门槛，再参与竞争。保持同情境的等强或更强抑制有效；不把索引名次改写成永久强度。
+
+**工程验收：**
+
+- 语义改写／跨语言命中不会被零相关抑制屏蔽。
+- 低于相关性门槛的反例不干扰；达到门槛且支持不胜出的反例仍抑制。
+- 当前情境支持继续有效，其他情境的例外不全局删除 Seed。
+- 空／坏 Basis、owner、预算与确定性排序原有约束不变。
+
+**入口：**`internal/core/selection/selection.go`、`ranker.go` 及其测试。
+
+### G2 Episode 证据与 Constitution 真实接线
+
+**已确认缺口：**Core public protocol 已有 `episode_evidence_max_bytes`、`MemoryContext.episode_evidence` 和来源 Constitution；Chorai 的中立端口、outbox、adapter、assembly 尚未完整承载。
+
+**最小变化：**沿现有中立端口映射公开字段；把同一角色快照绑定 Situation intake 与 Select；历史 Episode 在显式有界预算内进入 sealed RunContext，实际渲染的 refs 才进入 Delivery。
+
+**工程验收：**
+
+- 默认预算明确，有界、完整、不截断；非法预算／空引用／重复引用／跨类别重复被拒绝。
+- 只看到文本的模型输入不泄露 Core refs；seal 能检测 evidence 文本或 refs 被替换。
+- Episode 证据单独非空时也能记录准确 Delivery，且不授予 Seed 激活或反馈资格。
+- 当前 Situation 的同一 Constitution 快照在异步 outbox 重试、角色更新和 replay 后保持一致；未知仍为未知。
+- Chat 与 Proactive 都通过生产接线测试，不只验证 SDK demo。
+
+**入口：**Chorai `internal/agentos/memory`、`internal/memorycore`、`internal/agentos/assembly`、chat/proactive assembly 与 composition root；Core 公共协议作为依据。
+
+### G3 真实反馈归因与纠错
+
+**风险：**Chorai 当前把紧接 Agent 回复的用户消息作为前一轮 Outcome。文本可能是换话题、事实确认、礼貌回应或真实回应效果，不能把结构链完整当成正收益。
+
+**最小变化：**保留原始反馈与可信身份，由现有后台语义处理区分效果、事实确认和无法判断；明确反馈资格与反馈含义的不同。优先修复现有 `INHIBIT / TEXT / ADAPT` 的到达与处理遗漏。
+
+**工程验收：**
+
+- 换话题、事实确认、沉默／缺失反馈不形成“该回应有效”的新 Seed。
+- 本人明确长期纠正只修订 exact existing Target；不能绕过跨 session 形成规则初生。
+- 同链负反馈可触发局部抑制或修订，其他情境中有效的倾向仍可用。
+- 迟到反馈只在可信显式关联存在时进入原链；无法确认的关联不由模型猜测。
+- 不增加追问每轮反馈的产品流程，不推断自评 Outcome。
+
+**入口：**Chorai `chat_agent_reply.go` 与 lifecycle outbox；Core feedback qualification、Worker feedback lane 及现有 causal-loop eval。
+
+### G4 Disposition 条件与候选组织
+
+**当前基线：**完整因果对＋Situation 双视图秩融合；exact owner 回填；当前 anchor＋至多两份跨 session 历史因果对；模型可见材料与提交 Basis 精确一致。2026-09-16 小样本形成门已通过，不把此前已修复问题重复登记为当前缺陷。
+
+**最小变化：**在未见条件改写与跨话题轨迹上诊断候选 recall／precision；只有定位到候选损失才调整有界候选组织。相关反例参与判断，不能只挑成功经历证明倾向。
+
+**工程验收：**
+
+- 相同条件、不同任务的经历可进入同一候选组；同话题、不同条件的经历不能混成一个普遍倾向。
+- 同条件失败或冲突不能被绕过；不同条件的例外不制造全局否定。
+- 多视图失败、非法 refs、跨 owner／同 session／缺失或多 Outcome 保持原有回退与拒绝语义。
+- Basis 仍精确等于模型实际所见的合格组；不把任意 active Seed 算成目标形成。
+
+**入口：**`internal/core/consolidation/memory_index.go`、两套 Store 的 formation candidates、`disposition_materials.py` 与未见轨迹 eval。
+
+### G5 Worker 合同、覆盖率与失败可观测性
+
+**已确认问题：**主 prompt 教授 `NEW_DISPOSITION ADAPT`，执行代码统一删除；主 pass 处理任意 Recollection 会关闭全窗口事实 fallback，可能遗漏其他独立事实。格式失败／预算失败与正常无变化缺少清晰诊断。
+
+**最小变化：**对齐实际资格与 prompt；在现有单个 RPC 内覆盖尚未处理的独立事实，控制去重及调用上限；用现有 Job／Worker 日志区分失败原因，不新增权威状态。
+
+**工程验收：**
+
+- 不向模型提供永远不能提交的新 ADAPT 路径；existing ADAPT 正常保留。
+- 一条 KEEP／REVISE 不吞掉同窗口其他独立事实；重复正文和已处理意义不重复写入。
+- 时间、临时范围、撤回与归属在文本和既有版本中保持来源忠实。
+- 正常 no-change、无合格材料、格式拒绝、预算上限、资格拒绝和 stale 可被诊断，日志不输出来源全文或凭据。
+- 单个 consolidation RPC 保持无数据库权限、现有调用上限和冻结窗口提交资格。
+
+**入口：**Worker `service.py`、`source_materials.py`，两套 Store 的 consolidation 及测试。
+
+## 共同效果验证
+
+使用同一未见关系轨迹与固定 Harness／模型／预算，比较：
+
+1. 无长期记忆；
+2. Episode＋Recollection；
+3. 相同材料＋learned Disposition；
+4. 相同材料＋Oracle Disposition。
+
+沿实际链路分别记录材料存在、候选命中、选择、渲染、实际 Delivery、行为效果和纠正延迟。Oracle 必须先稳定拉开基础臂，才解释 learned 的失败为机制瓶颈。负对照、当前位置互换与模型调用完整性不可省略。PersonaMem 保持冻结回归，不再作为定向调参集。
+
+## 认知科学依据与工程推导的边界
+
+- 具体经历与跨经历结构学习的权衡支持“保留 Episode，同时形成可修订概括”，不规定软件必须等待特定时长：[McClelland et al., 1995](https://pubmed.ncbi.nlm.nih.gov/7624455/)。
+- 对相似经历进行区分支持 owner／情境隔离与避免话题混组，不规定新增脑区同名模块：[Bakker et al., 2008](https://pubmed.ncbi.nlm.nih.gov/18356518/)。
+- 新信息与再巩固的实验联系启发更新诊断；恐惧记忆实验结果不是所有 AI 记忆的统一学习定律：[Sevenster et al., 2013](https://pubmed.ncbi.nlm.nih.gov/23413355/)。
+- 记忆痕迹与可访问性可分离启发拆分存储、召回、利用的诊断；不以时间流逝自动删除所有长期材料：[Ryan et al., 2015](https://pubmed.ncbi.nlm.nih.gov/26023136/)。
+
+## ResultSpec 与工程约束
+
+- **用户价值：**相关经历可用、回应倾向可迁移、新证据能纠正旧理解。
+- **归属：**Core 长期账本／资格；Chorai Domain lifecycle outbox；可重建 MemoryIndex projection；sealed RunContext 和诊断日志为 runtime。
+- **Ontology：**只消费既有 Actor／关系／消息／run 的可信引用，不新增 Kernel ObjectType、RelationType 或 ActionType。
+- **写路径：**不新增 Kernel 或产品身份命令；现有来源绑定的 outbox operational evidence 与 Core 因果写路径保持不变，不制造重复 Activity。
+- **权限：**exact owner 校验及 permission-filter-first 不变；不由文本推断身份或权限。
+- **协议／数据：**优先接线已有公开字段；无计划 schema migration。若后续发现必须改 schema／公开契约，先把具体资格或状态变化写入本目标再实施。
+- **冻结：**在线 Select 无生成式 AI；LLM 执行留在 Python；Go 负责业务编排。模型不生成 ID、confidence、权重或长理由；普通 AI 结果不成为 durable Proposal。
+- **回滚：**各子任务独立提交，按提交撤回；不清理既有用户数据。索引仍可由规范真源重建。
+
+## 基线证据
+
+- Core 基线：`82a657c`；Chorai 基线：`90025dac`。
+- [PersonaMem 确认复验](../../../eval/reports/2026-09-13-personamem-learned-core-confirmatory.zh-CN.md)：156 题 learned 相对 none 为 +2.56pp，95% CI 跨零，未确认稳定正收益。
+- [ANCHOR companion](../../../eval/reports/2026-09-16-anchor-companion-v1.zh-CN.md)：形成／选择／渲染 4/4；三个可操纵 checkpoint learned 胜基础 RAG，第四题仍有 Oracle 天花板。属于小样本自定义受控评测，不宣称自然长期陪伴优势。
+
+## 执行记录
+
+| 方向 | 状态 | 交付与验证 |
+|---|---|---|
+| G1 | 执行中 | [选择器计划](../plans/2026-09-30-memory-effect-selection.md)；已在分析阶段用只读 overlay 复现零相关抑制 |
+| G2 | 待执行 | 公开字段、durable snapshot、Chat／Proactive／assembly／Delivery 全链路 |
+| G3 | 待执行 | 因果关联与语义效果分别验收，保持现有资格 |
+| G4 | 待执行 | 先诊断未见条件与候选损失，再改机制 |
+| G5 | 待执行 | 合同一致性、混合事实覆盖、失败原因与调用预算 |
+
+每项完成后追加实际命令、结果、提交及未解决限制；只有验收得到证据才更新状态。

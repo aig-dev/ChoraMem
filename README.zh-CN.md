@@ -89,6 +89,7 @@ curl -f http://127.0.0.1:8080/health/ready
 - [设计理念与文献依据](docs/philosophy.zh-CN.md)
 - [架构与生命周期](docs/architecture.zh-CN.md)
 - [语义索引协议](docs/memory-index.zh-CN.md)
+- [记忆效果优化 Goal 与验收进度](docs/superpowers/specs/2026-09-30-memory-effect-optimization-goal.md)
 - [Python Worker](worker/python/README.md)
 - [评测协议](eval/README.zh-CN.md)与[实验报告](eval/reports/)
 
