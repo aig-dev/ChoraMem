@@ -154,7 +154,7 @@
 | 方向 | 状态 | 交付与验证 |
 |---|---|---|
 | G1 | 工程修复与独立审查通过；共同效果待验证 | [选择器计划与证据](../plans/2026-09-30-memory-effect-selection.md)；修复 `1d6bbfc`；RED→GREEN 覆盖零分、低于门槛、零 minimum 与跨语言语义命中；选择器与完整 Go suite PASS；独立审查无阻断项 |
-| G2 | 部分工程修复通过，继续接线 | [接线计划](../../../../Chorai_Go/docs/superpowers/plans/2026-09-30-memory-effect-integration.md) Task 1 已完成，Chorai `86868f77`：完整有界 Episode evidence 的中立映射／渲染／准确 refs，Source／Outcome Constitution 公共映射，拒绝文本／refs 替换的 private memory seal；changed packages 与恢复本地 MySQL 后的完整 Go suite PASS。Task 2–5（durable source snapshot、生产预算、迁移／health、Chat／Proactive 全链路 smoke 与独立审查）尚待完成 |
+| G2 | 部分工程修复通过，继续接线 | [接线计划](../../../../Chorai_Go/docs/superpowers/plans/2026-09-30-memory-effect-integration.md) Task 1 已完成，Chorai `86868f77`：完整有界 Episode evidence 的中立映射／渲染／准确 refs，Source／Outcome Constitution 公共映射，拒绝文本／refs 替换的 private memory seal；changed packages 与恢复本地 MySQL 后的完整 Go suite PASS。Task 2 已完成，Chorai `64e9172a`：精确 tenant/source 索引、typed projection 校验、旧 outbox 显式补列／索引和只回填投影；SQLite／真实 MySQL、changed packages 与完整 Go suite PASS；隔离后端实际迁移及重启 health 200（无真实 provider 调用）。Task 3–5（durable source snapshot、生产预算、Chat／Proactive 全链路 smoke 与独立审查）尚待完成 |
 | G3 | 待执行 | 因果关联与语义效果分别验收，保持现有资格 |
 | G4 | 待执行 | 先诊断未见条件与候选损失，再改机制 |
 | G5 | 待执行 | 合同一致性、混合事实覆盖、失败原因与调用预算 |
