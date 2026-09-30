@@ -55,6 +55,8 @@
 
 **执行前已定位的约束：**同一条真实用户消息可能先成为上一轮 Outcome，再成为下一轮 Situation。Core 按物理 `source_ref` 冻结 Constitution（包括未知）；只在 Situation 中补取当前角色会与已记录的 Outcome 冲突。异步重试也不能重新取当前值覆盖原快照。后续实现须先确定现有 durable intake 如何复用该快照，保持相同 source_ref；不能通过给不同用途制造假来源、放宽 Core 不可变校验来消除冲突。EpisodeEvidence 的公开映射可作为独立子步骤推进。
 
+**2026-09-30 实施决策：**[Chorai 接线计划](../../../../Chorai_Go/docs/superpowers/plans/2026-09-30-memory-effect-integration.md)复用已有 unbound `ObserveSourceEvent`：在现有 outbox 增加 `SOURCE` 命令冻结真实来源，后续用途复用其快照。`SOURCE` 不形成 Episode、Seed 激活或反馈资格。为跨 run 的来源查找与旧 UNKNOWN 命令兼容，在现有 outbox 增加 `source_ref` 列与 tenant/source 索引，通过显式 runtime reconciliation 回填；不新增表。该 schema 变化防止按用途重取快照造成来源冲突，并避免每次来源入账扫描该 owner 的所有 JSON 命令。生产 Episode evidence 预算为 8192 UTF-8 bytes，保持协议最大 16384，完整证据不截断。
+
 **工程验收：**
 
 - 默认预算明确，有界、完整、不截断；非法预算／空引用／重复引用／跨类别重复被拒绝。
@@ -137,7 +139,7 @@
 - **Ontology：**只消费既有 Actor／关系／消息／run 的可信引用，不新增 Kernel ObjectType、RelationType 或 ActionType。
 - **写路径：**不新增 Kernel 或产品身份命令；现有来源绑定的 outbox operational evidence 与 Core 因果写路径保持不变，不制造重复 Activity。
 - **权限：**exact owner 校验及 permission-filter-first 不变；不由文本推断身份或权限。
-- **协议／数据：**优先接线已有公开字段；无计划 schema migration。若后续发现必须改 schema／公开契约，先把具体资格或状态变化写入本目标再实施。
+- **协议／数据：**接线已有公开字段；G2 在原 outbox 增加来源索引并显式回填，用于物理来源快照的不变性和重放。无新 learned-memory 表或 Core RPC。后续其他 schema／公开契约变化仍须先记录具体资格或状态变化。
 - **冻结：**在线 Select 无生成式 AI；LLM 执行留在 Python；Go 负责业务编排。模型不生成 ID、confidence、权重或长理由；普通 AI 结果不成为 durable Proposal。
 - **回滚：**各子任务独立提交，按提交撤回；不清理既有用户数据。索引仍可由规范真源重建。
 
@@ -152,7 +154,7 @@
 | 方向 | 状态 | 交付与验证 |
 |---|---|---|
 | G1 | 工程修复与独立审查通过；共同效果待验证 | [选择器计划与证据](../plans/2026-09-30-memory-effect-selection.md)；修复 `1d6bbfc`；RED→GREEN 覆盖零分、低于门槛、零 minimum 与跨语言语义命中；选择器与完整 Go suite PASS；独立审查无阻断项 |
-| G2 | 接线缺口和来源快照冲突已定位，待实现 | 公开字段、durable snapshot、Chat／Proactive／assembly／Delivery 全链路；先复用真实来源快照，再扩展接线 |
+| G2 | 实施中 | [接线计划](../../../../Chorai_Go/docs/superpowers/plans/2026-09-30-memory-effect-integration.md)；公开字段、durable source snapshot、Chat／Proactive／assembly／Delivery 全链路 |
 | G3 | 待执行 | 因果关联与语义效果分别验收，保持现有资格 |
 | G4 | 待执行 | 先诊断未见条件与候选损失，再改机制 |
 | G5 | 待执行 | 合同一致性、混合事实覆盖、失败原因与调用预算 |
