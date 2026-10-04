@@ -33,11 +33,14 @@ const (
 // MemoryCore is the harness-neutral public boundary of the authoritative core.
 type MemoryCoreClient interface {
 	ObserveSourceEvent(ctx context.Context, in *ObserveSourceEventRequest, opts ...grpc.CallOption) (*SourceEventReceipt, error)
+	// Select and read replay intentionally share the frozen request/Context shape.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	SelectMemory(ctx context.Context, in *SelectMemoryRequest, opts ...grpc.CallOption) (*MemoryContext, error)
 	// Read an existing frozen Context without selecting or creating one.
 	// The caller supplies the original scope, run, ordered sources and budget;
 	// constitution must be absent. Core restores the stored Constitution and
 	// verifies the complete original request hash before returning its Context.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	ReplayMemoryContext(ctx context.Context, in *SelectMemoryRequest, opts ...grpc.CallOption) (*MemoryContext, error)
 	RecordMemoryDelivery(ctx context.Context, in *MemoryDeliveryReceipt, opts ...grpc.CallOption) (*ReceiptAck, error)
 	ReportOutcome(ctx context.Context, in *ReportOutcomeRequest, opts ...grpc.CallOption) (*OutcomeReceipt, error)
@@ -108,11 +111,14 @@ func (c *memoryCoreClient) ReportOutcome(ctx context.Context, in *ReportOutcomeR
 // MemoryCore is the harness-neutral public boundary of the authoritative core.
 type MemoryCoreServer interface {
 	ObserveSourceEvent(context.Context, *ObserveSourceEventRequest) (*SourceEventReceipt, error)
+	// Select and read replay intentionally share the frozen request/Context shape.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	SelectMemory(context.Context, *SelectMemoryRequest) (*MemoryContext, error)
 	// Read an existing frozen Context without selecting or creating one.
 	// The caller supplies the original scope, run, ordered sources and budget;
 	// constitution must be absent. Core restores the stored Constitution and
 	// verifies the complete original request hash before returning its Context.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	ReplayMemoryContext(context.Context, *SelectMemoryRequest) (*MemoryContext, error)
 	RecordMemoryDelivery(context.Context, *MemoryDeliveryReceipt) (*ReceiptAck, error)
 	ReportOutcome(context.Context, *ReportOutcomeRequest) (*OutcomeReceipt, error)

@@ -7,11 +7,14 @@ option go_package = "github.com/aig-dev/ChoraMem/gen/memory/v1;memoryv1";
 // MemoryCore is the harness-neutral public boundary of the authoritative core.
 service MemoryCore {
   rpc ObserveSourceEvent(ObserveSourceEventRequest) returns (SourceEventReceipt);
+  // Select and read replay intentionally share the frozen request/Context shape.
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc SelectMemory(SelectMemoryRequest) returns (MemoryContext);
   // Read an existing frozen Context without selecting or creating one.
   // The caller supplies the original scope, run, ordered sources and budget;
   // constitution must be absent. Core restores the stored Constitution and
   // verifies the complete original request hash before returning its Context.
+  // buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
   rpc ReplayMemoryContext(SelectMemoryRequest) returns (MemoryContext);
   rpc RecordMemoryDelivery(MemoryDeliveryReceipt) returns (ReceiptAck);
   rpc ReportOutcome(ReportOutcomeRequest) returns (OutcomeReceipt);

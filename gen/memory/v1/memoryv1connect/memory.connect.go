@@ -52,11 +52,14 @@ const (
 // MemoryCoreClient is a client for the memory.v1.MemoryCore service.
 type MemoryCoreClient interface {
 	ObserveSourceEvent(context.Context, *connect.Request[v1.ObserveSourceEventRequest]) (*connect.Response[v1.SourceEventReceipt], error)
+	// Select and read replay intentionally share the frozen request/Context shape.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	SelectMemory(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
 	// Read an existing frozen Context without selecting or creating one.
 	// The caller supplies the original scope, run, ordered sources and budget;
 	// constitution must be absent. Core restores the stored Constitution and
 	// verifies the complete original request hash before returning its Context.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	ReplayMemoryContext(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
 	RecordMemoryDelivery(context.Context, *connect.Request[v1.MemoryDeliveryReceipt]) (*connect.Response[v1.ReceiptAck], error)
 	ReportOutcome(context.Context, *connect.Request[v1.ReportOutcomeRequest]) (*connect.Response[v1.OutcomeReceipt], error)
@@ -143,11 +146,14 @@ func (c *memoryCoreClient) ReportOutcome(ctx context.Context, req *connect.Reque
 // MemoryCoreHandler is an implementation of the memory.v1.MemoryCore service.
 type MemoryCoreHandler interface {
 	ObserveSourceEvent(context.Context, *connect.Request[v1.ObserveSourceEventRequest]) (*connect.Response[v1.SourceEventReceipt], error)
+	// Select and read replay intentionally share the frozen request/Context shape.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	SelectMemory(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
 	// Read an existing frozen Context without selecting or creating one.
 	// The caller supplies the original scope, run, ordered sources and budget;
 	// constitution must be absent. Core restores the stored Constitution and
 	// verifies the complete original request hash before returning its Context.
+	// buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
 	ReplayMemoryContext(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
 	RecordMemoryDelivery(context.Context, *connect.Request[v1.MemoryDeliveryReceipt]) (*connect.Response[v1.ReceiptAck], error)
 	ReportOutcome(context.Context, *connect.Request[v1.ReportOutcomeRequest]) (*connect.Response[v1.OutcomeReceipt], error)
