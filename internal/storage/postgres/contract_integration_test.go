@@ -27,6 +27,7 @@ func TestCoreStoreContract(t *testing.T) {
 	}
 	contracttest.Run(t, postgresContractFactory(databaseURL))
 	contracttest.RunAdaptiveSeeds(t, postgresIndexedContractFactory(databaseURL))
+	contracttest.RunFormationCandidates(t, postgresIndexedContractFactory(databaseURL))
 	contracttest.RunConstitution(t, postgresIndexedContractFactory(databaseURL))
 	contracttest.RunLiveConstitutionHarnesses(t, postgresIndexedContractFactory(databaseURL))
 	contracttest.RunLiveAdaptiveWorker(t, postgresIndexedContractFactory(databaseURL), func(t *testing.T, scope ledger.Scope) map[string]int {

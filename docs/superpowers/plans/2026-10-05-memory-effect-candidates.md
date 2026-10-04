@@ -36,11 +36,11 @@
 
 **Interfaces:** consume existing `storage.CoreStore`, `memoryindex.Index`, `consolidation.DispositionFormationBasis`; expose only test helper `RunFormationCandidates(t *testing.T, factory IndexedFactory)`.
 
-- [ ] Build one real-store cohort containing complete same-condition experiences in different tasks, a same-condition negative Outcome, same-topic/different-condition noise, same-session/cross-owner/invalid/missing/multiple/Agent Outcome controls. Use a test-only index whose ordered results are explicit; this is a qualification test, not proof of semantic retrieval.
-- [ ] Assert exactly the two indexed eligible historical pairs and current anchor reach Worker; negative Outcome text is preserved verbatim and never removed by positivity. The Worker receives no unindexed sibling solely because it shares the window.
-- [ ] Assert partial/missing/extra/duplicate focused Basis cannot commit and exact visible Basis can; preserve no-op and current-evidence constraints in both Stores.
-- [ ] Exercise causal-view failure, Situation-view failure and all-indexed-candidates-filtered behavior through public Store methods. If current code passes, record existing coverage; do not manufacture a defect/RED. For any actual failure, retain failing output then fix the smallest shared rule/equivalent Store code and rerun it GREEN.
-- [ ] Run both DB scripts, changed packages and full Go; record test names/results and commit.
+- [x] Build one real-store cohort containing complete same-condition experiences in different tasks, a same-condition negative Outcome, same-topic/different-condition noise, same-session/cross-owner/invalid/missing/multiple/Agent Outcome controls. Use a test-only index whose ordered results are explicit; this is a qualification test, not proof of semantic retrieval.
+- [x] Assert exactly the two indexed eligible historical pairs and current anchor reach Worker; negative Outcome text is preserved verbatim and never removed by positivity. The Worker receives no unindexed sibling solely because it shares the window.
+- [x] Assert partial/missing/extra/duplicate focused Basis cannot commit and exact visible Basis can; preserve no-op and current-evidence constraints in both Stores.
+- [x] Exercise causal-view failure, Situation-view failure and all-indexed-candidates-filtered behavior through public Store methods. If current code passes, record existing coverage; do not manufacture a defect/RED. For any actual failure, retain failing output then fix the smallest shared rule/equivalent Store code and rerun it GREEN.
+- [x] Run both DB scripts, changed packages and full Go; record test names/results and commit.
 
 ## Task 2: Frozen semantic candidate probe, no benchmark tuning
 
@@ -62,3 +62,5 @@
 - [ ] Run complete relevant suites, both database/runtime scripts and fixed Worker call-budget regression after any repair. Preserve existing single-view fallback and exact owner/source/Outcome rejection.
 - [ ] Commit; dispatch one fresh whole-plan reviewer. Re-grade every finding and each declined-to-judge item. Critical/Important get one test-backed RED→GREEN fix pass and green suite; record all Rulings/costs and deferred minors durably.
 - [ ] Update G4 status only to the scope proven. The full goal remains active until the separate common held-out four-arm, actual Delivery and correction-latency requirements pass their audit.
+
+Task1 evidence: the current production candidate rules already passed all new controlled qualification cases on first execution; there is no claimed RED or production repair. Real MySQL focused suite3.289s verified negative Outcome preservation, unqualified candidates filtered, exact/missing/extra/duplicate/anchor-only Basis and both original view fallbacks/anchor-only no-op. Full Go and vet passed. Complete DB/runtime scripts passed PostgreSQL25.185s Store/0.331s RPC, MySQL41.709s Store/0.470s RPC. These scripted orders prove canonical qualification, not semantic recall/condition precision; Task2 remains required.

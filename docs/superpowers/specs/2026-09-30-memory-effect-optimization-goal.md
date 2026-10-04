@@ -170,3 +170,5 @@ G3／G5 Task3：安全日志已区分正常无变化、无合格材料、格式�
 G3／G5 Task3提交 `26f03f8`。Task4的完整 Core／vet／Worker 发布包与跨进程 smoke、两数据库最新 memoryd runtime 均已通过；架构与 Worker 文档已同步，整组独立审查正在进行。共同效果 gate 仍保持待验证，不将11个跳过的主 prompt 语义用例计作实测通过。
 
 G3／G5整组独立审查已闭环：行内合法 ADAPT／TEXT、临时覆盖与 aggregate预算误报经6项RED→GREEN修复；cross-target恢复错误经4项RED→GREEN修复，只使用对应Target已有markers，不猜关联。完整Worker165通过／11 optional live跳过；最终 clean wheel／生成漂移／生产 Go→Python smoke通过。全部审查决定与风险见 [持久审查记录](../../evidence/2026-10-05-memory-effect-worker-review.md)。G4、真实模型语义与共同四臂行为验收仍保持执行中。
+
+G4 Task1：共享真实数据库合同首次执行即通过，当前双视图／资格机制保持不变。负Outcome原文进入模型材料；cross-owner／same-session／无、多、Agent Outcome与错kind不成为候选；缺少、多余、重复、仅anchor的Basis不提交，精确可见组可提交；因果视图失败、情境视图失败及全候选过滤的原回退／no-op保持。完整Go／vet、PostgreSQL25.185s Store＋0.331s RPC、MySQL41.709s Store＋0.470s RPC通过。这是已给定候选顺序的资格证据，尚不能证明语义召回、条件精度或行为收益。

@@ -26,6 +26,7 @@ func TestCoreStoreContract(t *testing.T) {
 	}
 	contracttest.Run(t, mysqlContractFactory(databaseURL))
 	contracttest.RunAdaptiveSeeds(t, mysqlIndexedContractFactory(databaseURL))
+	contracttest.RunFormationCandidates(t, mysqlIndexedContractFactory(databaseURL))
 	contracttest.RunConstitution(t, mysqlIndexedContractFactory(databaseURL))
 	contracttest.RunLiveConstitutionHarnesses(t, mysqlIndexedContractFactory(databaseURL))
 	contracttest.RunLiveAdaptiveWorker(t, mysqlIndexedContractFactory(databaseURL), func(t *testing.T, scope ledger.Scope) map[string]int {
