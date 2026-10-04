@@ -273,8 +273,12 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
                     )
                     _diagnostic("formation", status)
                     raise
-                _diagnostic("formation", "produced" if formation else "no_change")
-                tagged_text = _append_tagged_text(tagged_text, formation)
+                combined = _append_tagged_text(tagged_text, formation)
+                if formation and combined == tagged_text:
+                    _diagnostic("formation", "output_budget")
+                else:
+                    _diagnostic("formation", "produced" if formation else "no_change")
+                tagged_text = combined
 
         feedback_targets = _eligible_feedback_targets(
             request.window_text, request.allowed_target_refs
@@ -528,6 +532,14 @@ def _should_process_recollection(
     )
 
 
+def _split_operation(line: str) -> tuple[str, str | None]:
+    """Recognize Core's exact inline TEXT/ADAPT compatibility, not new grammar."""
+    for operation in ("TEXT", "ADAPT"):
+        if line.startswith(operation + " "):
+            return operation, line[len(operation) + 1:].strip(_GO_TRIM_SPACE)
+    return line, None
+
+
 def _recollection_coverage(
     request: inference_pb2.ProcessConsolidationWindowRequest,
     primary_text: str,
@@ -552,7 +564,8 @@ def _recollection_coverage(
         block = [line for line in lines[starts[offset]:starts[offset + 1]] if line]
         if len(block) < 8 or block[2] != "APPLICATION" or block[4] != "CHANGE":
             continue
-        target, application, change = block[1], block[3], block[5]
+        target, application = block[1], block[3]
+        change, inline_body = _split_operation(block[5])
         if (
             target not in allowed_targets
             or application not in {"SELF", "OTHER", "RELATION", "SITUATION"}
@@ -562,10 +575,15 @@ def _recollection_coverage(
             continue
         if target in existing and application != existing[target].application.upper():
             continue
-        if change == "TEXT" and len(block) >= 9 and block[7] == "BASIS":
-            body, basis = block[6], block[8:]
+        if change == "TEXT":
+            if inline_body is not None and block[6] == "BASIS":
+                body, basis = inline_body, block[7:]
+            elif inline_body is None and len(block) >= 9 and block[7] == "BASIS":
+                body, basis = block[6], block[8:]
+            else:
+                continue
             if (
-                len(body.encode("utf-8")) > 4096
+                not body or len(body.encode("utf-8")) > 4096
                 or body in {"TARGET", "APPLICATION", "CHANGE", "BASIS"}
             ):
                 continue
@@ -832,7 +850,8 @@ def _normalize_primary_feedback(
         # direct correction exactly once; Core still validates its eligibility.
         if (
             len(values) > 5 and values[2] == "APPLICATION"
-            and values[4:6] == ["CHANGE", "ADAPT"]
+            and values[4] == "CHANGE"
+            and _split_operation(values[5])[0] == "ADAPT"
         ):
             kept.append(block.rstrip("\r\n"))
             continue
@@ -856,7 +875,6 @@ def _normalize_feedback_output(
     """Bind model-chosen feedback semantics to Core-offered causal refs."""
 
     targets = set(target_refs)
-    feedback_episodes, outcome_episodes = _feedback_basis_map(window_text)
     lines = [line.strip(" \t\r") for line in text.splitlines() if line.strip(" \t\r")]
     blocks: list[str] = []
     offset = 0
@@ -870,15 +888,23 @@ def _normalize_feedback_output(
         ):
             return ""
         target = lines[offset + 1]
+        feedback_episodes, outcome_episodes = _feedback_basis_map(
+            window_text, target_ref=target
+        )
         application = lines[offset + 3]
-        operation = lines[offset + 5]
+        operation, inline_body = _split_operation(lines[offset + 5])
         body = ""
         basis_marker = offset + 6
         if operation == "TEXT":
-            if basis_marker >= len(lines) or lines[basis_marker] == "BASIS":
+            if inline_body is not None:
+                body = inline_body
+            else:
+                if basis_marker >= len(lines) or lines[basis_marker] == "BASIS":
+                    return ""
+                body = lines[basis_marker]
+                basis_marker += 1
+            if not body:
                 return ""
-            body = lines[basis_marker]
-            basis_marker += 1
         elif operation not in {"REENACT", "INHIBIT"}:
             return ""
         if basis_marker >= len(lines) or lines[basis_marker] != "BASIS":
@@ -923,8 +949,23 @@ def _normalize_feedback_output(
     return "\n".join(blocks)
 
 
-def _feedback_basis_map(window_text: str) -> tuple[set[str], dict[str, str]]:
+def _feedback_basis_map(
+    window_text: str, *, target_ref: str | None = None,
+) -> tuple[set[str], dict[str, str]]:
     lines = [line.strip(" \t\r") for line in window_text.splitlines()]
+    if target_ref is not None:
+        # These markers are offered by Core. Do not borrow another target's
+        # causal pair or infer a link when the model supplies the wrong ref.
+        target_lines: list[str] = []
+        offered_target = ""
+        for line in lines:
+            if line.startswith("ELIGIBLE_DISPOSITION "):
+                offered_target = line.removeprefix("ELIGIBLE_DISPOSITION ").strip()
+            elif line.startswith(("ELIGIBLE_", "ACTIVE_DISPOSITION_HINT ")):
+                offered_target = ""
+            elif offered_target == target_ref:
+                target_lines.append(line)
+        lines = target_lines
     episodes = {
         line.removeprefix("FEEDBACK_EPISODE ").strip()
         for line in lines

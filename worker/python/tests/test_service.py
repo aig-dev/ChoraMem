@@ -1439,3 +1439,122 @@ async def test_worker_grpc_failure_keeps_retry_and_never_exposes_provider_text(c
     finally:
         await channel.close()
         await server.stop(grace=0)
+
+
+@pytest.mark.asyncio
+async def test_review_inline_existing_adapt_survives_mixed_fact_and_feedback() -> None:
+    fact = "TARGET\nNEW_RECOLLECTION\nAPPLICATION\nOTHER\nCHANGE\nTEXT\nThe user lives in Shanghai.\nBASIS\nepisode-current"
+    adaptation = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\nADAPT Hear the user out before advice.\nBASIS\nepisode-current"
+    request = _typed_recollection_request()
+    request.allowed_target_refs.append("seed-current@1")
+    request.window_text += "\nELIGIBLE_ADAPTATION seed-current@1\nAPPLICATION RELATION\nTEXT Give advice first.\nDIRECT_EPISODE episode-current\nELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT Give advice first.\nFEEDBACK_EPISODE episode-current"
+
+    class LaneModel(SequenceTextModel):
+        async def complete(self, text: str) -> str:
+            self.calls.append(text)
+            if len(self.calls) == 1:
+                return fact + "\n" + adaptation
+            return "NO_CHANGE" if "ALLOWED_TARGETS_BEGIN" in text else "NO_MEMORY"
+
+    model = LaneModel([])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == fact + "\n" + adaptation
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("lane", ["primary", "recovery"])
+async def test_review_inline_feedback_text_keeps_qualified_pair(lane: str) -> None:
+    fact = "TARGET\nNEW_RECOLLECTION\nAPPLICATION\nOTHER\nCHANGE\nTEXT\nThe user lives in Shanghai.\nBASIS\nepisode-current"
+    feedback = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\nTEXT Under time pressure give one next step.\nBASIS\noutcome-current"
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text="ELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT Ask first.\nFEEDBACK_EPISODE episode-current\nFEEDBACK_OUTCOME outcome-current\nOUTCOME_EPISODE episode-current",
+        allowed_target_refs=["NEW_RECOLLECTION", "seed-current@1"],
+        allowed_basis_refs=["episode-current", "outcome-current"],
+    )
+    model = SequenceTextModel([fact + "\n" + feedback, "NO_CHANGE"] if lane == "primary" else [fact, feedback])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    expected = feedback.replace("TEXT Under", "TEXT\nUnder").replace("BASIS\noutcome-current", "BASIS\nepisode-current\noutcome-current")
+    assert response.tagged_text == fact + "\n" + expected
+    assert len(model.calls) == (1 if lane == "primary" else 2)
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("target", ["NEW_RECOLLECTION", "recollection-existing@1"])
+async def test_review_inline_recollection_text_supplies_exact_coverage(target: str) -> None:
+    body = "用户现在长期住在北京。"
+    primary = f"TARGET\n{target}\nAPPLICATION\nOTHER\nCHANGE\nTEXT {body}\nBASIS\nepisode-current"
+    request = _typed_recollection_request()
+    request.evidence.episodes[0].sources[0].text = "我现在长期住在北京，也喜欢周末徒步。"
+    model = SequenceTextModel([primary, body + "\n用户喜欢周末徒步。"])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text.startswith(primary + "\n")
+    assert response.tagged_text.count(body) == 1
+    assert "用户喜欢周末徒步。" in response.tagged_text
+    coverage = model.calls[1].split("EXISTING_RECOLLECTIONS_BEGIN\n", 1)[1].split("EXISTING_RECOLLECTIONS_END", 1)[0]
+    assert "> " + body in coverage
+    if target != "NEW_RECOLLECTION":
+        assert "用户已经长期住在上海。" not in coverage
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_review_formation_aggregate_overflow_reports_budget_without_produced(caplog) -> None:
+    primary = "\n".join(
+        "TARGET\nNEW_RECOLLECTION\nAPPLICATION\nOTHER\nCHANGE\nTEXT\n"
+        + (str(index) + "x" * (4096 - len(str(index))))
+        + "\nBASIS\nepisode-current" for index in range(15)
+    )
+    formation = "unique-formation-" + "y" * 3983
+    assert len(primary.encode()) < MAX_TAGGED_TEXT_BYTES
+    model = SequenceTextModel([primary, formation, "NO_MEMORY"])
+    with caplog.at_level(logging.INFO, logger="memory_core_worker.service"):
+        response = await InferenceService(model).ProcessConsolidationWindow(_paired_formation_request(), None)
+    assert response.tagged_text == primary
+    assert formation not in response.tagged_text
+    assert "lane=formation status=output_budget" in caplog.text
+    assert "lane=formation status=produced" not in caplog.text
+    assert len(model.calls) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["REENACT", "INHIBIT", "TEXT"])
+async def test_review_wrong_target_recovery_basis_cannot_poison_valid_primary(operation: str) -> None:
+    first = "TARGET\nseed-first@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\nepisode-first"
+    wrong_basis = "episode-first" if operation == "REENACT" else "outcome-first"
+    change = "TEXT\nGive one next step." if operation == "TEXT" else operation
+    recovery = f"TARGET\nseed-second@1\nAPPLICATION\nRELATION\nCHANGE\n{change}\nBASIS\n{wrong_basis}"
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text=(
+            "ELIGIBLE_DISPOSITION seed-first@1\nAPPLICATION RELATION\nTEXT Ask first.\n"
+            "FEEDBACK_EPISODE episode-first\nFEEDBACK_OUTCOME outcome-first\nOUTCOME_EPISODE episode-first\n\n"
+            "ELIGIBLE_DISPOSITION seed-second@1\nAPPLICATION RELATION\nTEXT Give one next step.\n"
+            "FEEDBACK_EPISODE episode-second\nFEEDBACK_OUTCOME outcome-second\nOUTCOME_EPISODE episode-second"
+        ),
+        allowed_target_refs=["seed-first@1", "seed-second@1"],
+        allowed_basis_refs=["episode-first", "outcome-first", "episode-second", "outcome-second"],
+    )
+    model = SequenceTextModel([first, recovery])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == first
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_review_wrong_primary_target_basis_is_recovered_with_its_own_pair() -> None:
+    wrong = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\nINHIBIT\nBASIS\noutcome-other"
+    recovered = wrong.replace("outcome-other", "outcome-current")
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text=(
+            "ELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT Ask first.\n"
+            "FEEDBACK_EPISODE episode-current\nFEEDBACK_OUTCOME outcome-current\nOUTCOME_EPISODE episode-current\n\n"
+            "ELIGIBLE_DISPOSITION seed-other@1\nAPPLICATION RELATION\nTEXT Give advice.\n"
+            "FEEDBACK_EPISODE episode-other\nFEEDBACK_OUTCOME outcome-other\nOUTCOME_EPISODE episode-other"
+        ),
+        allowed_target_refs=["seed-current@1"],
+        allowed_basis_refs=["episode-current", "outcome-current", "episode-other", "outcome-other"],
+    )
+    model = SequenceTextModel([wrong, recovered])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == recovered.replace("BASIS\noutcome-current", "BASIS\nepisode-current\noutcome-current")
+    assert len(model.calls) == 2

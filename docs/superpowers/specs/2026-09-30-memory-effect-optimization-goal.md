@@ -155,16 +155,18 @@
 |---|---|---|
 | G1 | 工程修复与独立审查通过；共同效果待验证 | [选择器计划与证据](../plans/2026-09-30-memory-effect-selection.md)；修复 `1d6bbfc`；RED→GREEN 覆盖零分、低于门槛、零 minimum 与跨语言语义命中；选择器与完整 Go suite PASS；独立审查无阻断项 |
 | G2 | 工程与独立审查完成，行为验证待完成 | [接线计划](../../../../Chorai_Go/docs/superpowers/plans/2026-09-30-memory-effect-integration.md) Task 1 已完成，Chorai `86868f77`：完整有界 Episode evidence 的中立映射／渲染／准确 refs，Source／Outcome Constitution 公共映射，拒绝文本／refs 替换的 private memory seal；changed packages 与恢复本地 MySQL 后的完整 Go suite PASS。Task 2 已完成，Chorai `64e9172a`：精确 tenant/source 索引、typed projection 校验、旧 outbox 显式补列／索引和只回填投影；SQLite／真实 MySQL、changed packages 与完整 Go suite PASS；隔离后端实际迁移及重启 health 200（无真实 provider 调用）。Task 3 已完成，Chorai `da3aab8a`：内部 SOURCE 冻结精确物理来源和 Constitution（含 UNKNOWN），用途／跨 run 复用；新 AgentAct 继承 causal Situation；unbound Observe 只有 source receipt，用途 lease 等待其确认。非法 UTF-8 在 JSON 入账前拒绝，SOURCE 投影恢复不改证据；private SOURCE 不绕过有效用途 intake。memorycore／repository／database、真实 MySQL／SQLite 并发首写与 UNKNOWN 竞争、targeted race PASS。Task 4 已完成，Chorai `9111dabe`：生产 Outbox 捕获 governed Soul，assembly 按准确 Situation 来源读取持久快照并启用 8192-byte evidence；真实 adapter／outbox／repository／公开 gRPC／ModelRunner 的受控 Chat／Proactive smoke 验证完整引用、refs 隐藏、模型前 durable Delivery 与 remote Delivery 在 AgentAct 前确认。Snapshot 变化／UNKNOWN、上一 Outcome→下一 Situation、周期 occurrence／旧 run 来源重试通过。affected packages／targeted race／完整 Go suite PASS；真实 MySQL 的 Core Episode 合同确认引用不授予 Disposition 反馈资格；隔离后端实际重启 health200。无外部 inference provider 或自然分布 uplift 结论。Task 5 完成：Chorai `b783b1f8` 与 Core `f4df58c` 修复独立审查的旧零预算 frozen Select 升级冲突；原历史 Constitution／Context 只读恢复，UNKNOWN 来源不变。Core／Chorai uncached full Go suites、targeted race、两数据库完整 Store 与运行中 memoryd replay、Go SDK、Python46 tests、TypeScript40 tests／build／package／生成漂移通过；isolated profile/Make 后端 health200。Critical0／Important1 已一轮 RED→GREEN 修复／Minor0；全部 Ruling 和边界见 [审查记录](../../../../Chorai_Go/docs/evidence/2026-10-04-memory-effect-integration-review.md)。共同 held-out 行为效果仍待验证 |
-| G3 | 部分工程修复，继续验证 | 因果关联与语义效果分别验收，保持现有资格 |
-| G4 | 待执行 | 先诊断未见条件与候选损失，再改机制 |
-| G5 | 工程修复完成，整组审查与行为验证待完成 | 合同一致性、混合事实覆盖、失败原因与调用预算；见 Worker 计划 Task1–3 |
+| G3 | 已定位的工程遗漏与独立审查通过；真实反馈语义待验证 | Worker 逐目标覆盖、existing ADAPT／行内兼容、target-local 因果对已通过；迟到关联／相邻消息真实含义仍需全链实测 |
+| G4 | 计划落档，候选合同诊断开始 | [候选诊断计划](../plans/2026-10-05-memory-effect-candidates.md)；先验证现有机制，不预先扩大K或选择成功例 |
+| G5 | 工程修复与独立审查通过；真实语义效果待验证 | Task1–4完成；Worker165 tests＋11 optional live skipped，发布包／跨进程 smoke及两数据库完整 runtime通过；语义覆盖与来源忠实性须实测 |
 
 每项完成后追加实际命令、结果、提交及未解决限制；只有验收得到证据才更新状态。
 
-G3／G5 的具体遗漏与验收分解见 [Worker 优化计划](../plans/2026-10-04-memory-effect-worker.md)：反馈逐目标覆盖、existing ADAPT 保留、剩余事实覆盖和安全诊断，尚未完成。G4 候选与共同效果评测保持原目标。
+G3／G5 的具体遗漏与验收分解见 [Worker 优化计划](../plans/2026-10-04-memory-effect-worker.md)：反馈逐目标覆盖、existing ADAPT 保留、剩余事实覆盖和安全诊断，Task1–4工程与审查已完成，真实语义尚待实测。G4 候选与共同效果评测保持原目标。
 
 G3／G5 Worker 进展：Task1 `dc9d48e` 已修复逐目标反馈遗漏和 existing ADAPT 被清除，主 prompt 不再提供不可提交的新 ADAPT；Task2 已通过 new／KEEP／revision 的独立事实覆盖、准确重复过滤、无效 Target/Application/Basis 不授予 coverage 和完整四次调用上限。Worker147 tests通过，11 optional live tests跳过。日志分类、两数据库提交链与未见模型行为仍待完成，不能将受控文本回归解释为自然分布 uplift。
 
 G3／G5 Task3：安全日志已区分正常无变化、无合格材料、格式／资格拒绝、输入／输出预算、Worker 失败与 stale。超长 feedback 在归一化前拒绝；异常消息不携带 provider／来源正文，失败仍可重试。Worker155 tests通过，11 optional live跳过；完整 Core Go 及 PostgreSQL／MySQL 迁移后完整 Store、运行中 memoryd RPC测试通过。Task4 整组审查与共同 held-out 尚未完成。
 
 G3／G5 Task3提交 `26f03f8`。Task4的完整 Core／vet／Worker 发布包与跨进程 smoke、两数据库最新 memoryd runtime 均已通过；架构与 Worker 文档已同步，整组独立审查正在进行。共同效果 gate 仍保持待验证，不将11个跳过的主 prompt 语义用例计作实测通过。
+
+G3／G5整组独立审查已闭环：行内合法 ADAPT／TEXT、临时覆盖与 aggregate预算误报经6项RED→GREEN修复；cross-target恢复错误经4项RED→GREEN修复，只使用对应Target已有markers，不猜关联。完整Worker165通过／11 optional live跳过；最终 clean wheel／生成漂移／生产 Go→Python smoke通过。全部审查决定与风险见 [持久审查记录](../../evidence/2026-10-05-memory-effect-worker-review.md)。G4、真实模型语义与共同四臂行为验收仍保持执行中。

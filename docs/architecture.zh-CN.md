@@ -27,7 +27,7 @@ Basis 由程序绑定；统一 lane 对同一形成资格给出的 `NEW_DISPOSIT
 Recollection-only 纯文本后备继续检查独立剩余事实；一条主结果 KEEP／TEXT 不关闭整个窗口。
 已有正文与合格主结果只作为引用的临时去重覆盖，修订覆盖替换旧正文；模型排除已覆盖含义，
 程序过滤完全重复行并返回最多 32 行独立正文或 `NO_MEMORY`。反馈按完整 Target 块归一，
-保留本人 exact existing ADAPT；同一次 recovery 只处理尚未输出的合格反馈 Target。四个 lane 是一次无状态 RPC 内的文本处理，最多四次后台模型
+保留本人 exact existing ADAPT；同一次 recovery 只处理尚未输出的合格反馈 Target，绑定其自己的已提供因果对；行内 TEXT／ADAPT 保持 Core 的兼容语法。四个 lane 是一次无状态 RPC 内的文本处理，最多四次后台模型
 调用，不是新的调度 Pipeline；模型都不生成数据库 ID，Core 仍是唯一提交权威。
 
 ## 公共 turn 工作流

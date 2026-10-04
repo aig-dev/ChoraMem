@@ -154,9 +154,9 @@ lane 产生的同类 `NEW_DISPOSITION TEXT` 块也会被机械移除，其他 Ta
 candidate 的 `origin` 可为 `related`，也可为 scheduler overlap 带入的 `current`；历史性由
 不同 session 与 Core 标记确定，Worker 不用批次 origin 代替时间判断。
 
-反馈输出逐完整 Target 块归一，其他主结果保留；本人长期纠正的既有 ADAPT 不按反馈归一。
+反馈输出逐完整 Target 块归一，其他主结果保留；兼容 Core 已支持的行内 TEXT／ADAPT 正文。本人长期纠正的既有 ADAPT 不按反馈归一。
 一次 recovery 只提供尚未处理的合格 Target，完成的 Target 不会重复提交。Core 仍校验
-每个 Target 的精确 Basis；规范化不授予资格。原始 feedback 输出先受 64 KiB 上限约束。
+每个 Target 的精确 Basis；规范化只使用该 Target 已提供的因果对，不借用其他目标的 Outcome，也不授予资格。原始 feedback 输出先受 64 KiB 上限约束。
 
 推断型 Disposition 的每个形成 Basis 必须支持同一个完整回应倾向；不能把同主题下分别成立的
 多个动作拼成一个 Seed。Disposition 演化、精确去重与原子提交仍由统一路径和 Core 处理。因此每窗口的

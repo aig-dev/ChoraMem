@@ -38,7 +38,7 @@
 
 - [x] Synchronize architecture, Worker docs and authoritative goal with exact causal meaning, calls and limitations. Trace requirements to named tests and actual DB evidence.
 - [x] Run Worker/full Core suites, relevant package/lint checks and shared DB integration; no external-provider or natural-distribution uplift claim from fixture results.
-- [ ] Commit and dispatch one fresh whole-plan reviewer. Re-grade findings and each declined-to-judge item; fix Critical/Important in one RED-to-GREEN pass, retain every Ruling and cost. Keep G4/common held-out behavior validation open until independently proven.
+- [x] Commit and dispatch one fresh whole-plan reviewer. Re-grade findings and each declined-to-judge item; fix Critical/Important in one RED-to-GREEN pass, retain every Ruling and cost. Keep G4/common held-out behavior validation open until independently proven.
 
 ## Self-review
 
@@ -67,3 +67,5 @@ Requirement-to-evidence trace (controlled fixtures do not establish model semant
 The eleven opt-in primary-prompt cases call the model directly; they do not prove full-service residual extraction, semantic dedup, per-target causal attribution, or committed behavioral benefit. Those remain in the full goal's live held-out gate. No schema/protocol changes in this plan.
 
 Task4 verification at26f03f8 plus documentation only: uncached full Core Go and go vet passed; verify-worker passed155 tests/11 optional live skipped, exact generated bindings, clean wheel and production Go-to-Python bridge. PostgreSQL runtime script passed25.806s Store/0.323s RPC; MySQL41.531s Store/0.442s RPC. These scripts migrate fresh databases, build/start the final memoryd and check readiness before public RPC. Independent review remains pending.
+
+Final independent review at90ab07f: Critical0/Important1/Minor1. Executor re-graded aggregate formation-budget omission and the declined cross-target recovery failure as Important. One correction pass:10 behavior regressions RED→GREEN, complete Worker165 passed/11 optional primary-live skipped; final verify-worker passed exact bindings, clean wheel and production Go-to-Python smoke. Inline TEXT/ADAPT matches Core's existing syntax, coverage excludes repeated exact body, recovery cannot borrow another Target's causal pair, aggregate omission logs output_budget rather than produced. No deferred minors, no re-review. All17 Rulings and costs plus every declined scope are retained in [durable review](../../evidence/2026-10-05-memory-effect-worker-review.md). G4/common effect remain open.
