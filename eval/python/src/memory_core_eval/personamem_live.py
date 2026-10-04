@@ -560,6 +560,11 @@ class DatabaseProbe:
             basis[table] = self.read(f"""SELECT b.{column} AS ref, b.episode_ref, b.role, r.session_ref
                 FROM {table} b JOIN episodes r ON r.tenant_ref=b.tenant_ref AND r.episode_ref=b.episode_ref
                 WHERE {owner} ORDER BY b.{column}, b.episode_ref, b.role""", params)
+        basis["seed_outcome_basis_links"] = self.read(f"""SELECT b.seed_version_ref AS ref,
+            b.outcome_event_ref, b.role FROM seed_outcome_basis_links b
+            JOIN seed_versions v ON v.tenant_ref=b.tenant_ref AND v.seed_version_ref=b.seed_version_ref
+            JOIN disposition_seeds r ON r.tenant_ref=v.tenant_ref AND r.seed_ref=v.seed_ref
+            WHERE {owner} ORDER BY b.seed_version_ref, b.outcome_event_ref, b.role""", params)
         jobs = self.read("""SELECT job_ref, episode_refs, window_hash, attempts FROM consolidation_jobs
             WHERE tenant_ref=%s AND agent_ref=%s AND relationship_ref=%s ORDER BY job_order""", params)
 
