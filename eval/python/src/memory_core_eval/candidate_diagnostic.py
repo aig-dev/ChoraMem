@@ -112,14 +112,31 @@ def summarize_candidate_probe(
         calls = _sequence(record.get("model_calls"), "model_calls")
         if not calls:
             raise ValueError("missing model completions")
+        started = {}
+        for value in _sequence(record.get("started_model_calls"), "started_model_calls"):
+            value = _mapping(value, "started model call")
+            attempt = _text(value.get("attempt_ref"), "attempt_ref")
+            if attempt in started or not _hash(value.get("input_sha256")):
+                raise ValueError("invalid or duplicate model call start")
+            started[attempt] = (
+                _text(value.get("rpc_ref", "window"), "rpc_ref"), value["input_sha256"],
+            )
         rpc_counts = Counter()
+        completed = set()
         for call in calls:
             call = _mapping(call, "model call")
             if call.get("finish_reason") != "stop" or any(
                 not _hash(call.get(key)) for key in ("input_sha256", "output_sha256")
             ):
                 raise ValueError("incomplete model completion")
-            rpc_counts[_text(call.get("rpc_ref", "window"), "rpc_ref")] += 1
+            attempt = _text(call.get("attempt_ref"), "attempt_ref")
+            rpc = _text(call.get("rpc_ref", "window"), "rpc_ref")
+            if attempt in completed or started.get(attempt) != (rpc, call["input_sha256"]):
+                raise ValueError("uncorrelated or duplicate model completion")
+            completed.add(attempt)
+            rpc_counts[rpc] += 1
+        if completed != set(started):
+            raise ValueError("incomplete model call set")
         if max(rpc_counts.values()) > 4:
             raise ValueError("Worker RPC call ceiling exceeded")
         candidates = set(_refs(record.get("candidate_session_refs"), "candidate_session_refs"))

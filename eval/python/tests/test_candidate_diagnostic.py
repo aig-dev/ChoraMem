@@ -23,7 +23,8 @@ def _record(case):
     return {
         "case_ref": case.instance.instance_ref,
         "input_sha256": candidate_input_sha256(case),
-        "model_calls": [{"input_sha256": "a"*64, "output_sha256": "b"*64, "finish_reason": "stop"}],
+        "started_model_calls": [{"attempt_ref": "call:1", "rpc_ref": "window", "input_sha256": "a"*64}],
+        "model_calls": [{"attempt_ref": "call:1", "input_sha256": "a"*64, "output_sha256": "b"*64, "finish_reason": "stop"}],
         "candidate_session_refs": list(case.supporting_session_refs),
         "visible_basis_refs": refs,
         "target_ref": target,
@@ -117,7 +118,24 @@ def test_candidate_probe_cannot_count_a_one_episode_target_as_qualified_formatio
 def test_candidate_probe_enforces_call_ceiling_per_rpc_not_per_case():
     dataset = load_candidate_probe(DATA)
     records = [_record(case) for case in dataset.cases]
-    records[0]["model_calls"] = [dict(records[0]["model_calls"][0], rpc_ref=f"job:{index//4}") for index in range(8)]
+    records[0]["model_calls"] = [dict(records[0]["model_calls"][0], attempt_ref=f"call:{index}", rpc_ref=f"job:{index//4}") for index in range(8)]
+    records[0]["started_model_calls"] = [{key:call[key] for key in ("attempt_ref", "rpc_ref", "input_sha256")} for call in records[0]["model_calls"]]
     assert summarize_candidate_probe(dataset, records)["rows"][0]["completed_calls"] == 8
     for call in records[0]["model_calls"]: call["rpc_ref"] = "one-job"
+    with pytest.raises(ValueError): summarize_candidate_probe(dataset, records)
+
+@pytest.mark.parametrize('corruption', ['missing inventory', 'omitted completion', 'duplicate completion', 'input mismatch', 'duplicate start'])
+def test_candidate_probe_rejects_incomplete_started_call_inventory(corruption):
+    dataset = load_candidate_probe(DATA)
+    records = [_record(case) for case in dataset.cases]
+    for record in records:
+        record['model_calls'][0]['attempt_ref'] = 'call:1'
+        record['started_model_calls'] = [{'attempt_ref': 'call:1', 'rpc_ref': 'window', 'input_sha256': 'a'*64}]
+    record = records[0]
+    if corruption == 'missing inventory': record.pop('started_model_calls')
+    elif corruption == 'omitted completion':
+        record['started_model_calls'].append({'attempt_ref': 'call:2', 'rpc_ref': 'window', 'input_sha256': 'c'*64})
+    elif corruption == 'duplicate completion': record['model_calls'].append(dict(record['model_calls'][0]))
+    elif corruption == 'input mismatch': record['started_model_calls'][0]['input_sha256'] = 'c'*64
+    else: record['started_model_calls'].append(dict(record['started_model_calls'][0]))
     with pytest.raises(ValueError): summarize_candidate_probe(dataset, records)

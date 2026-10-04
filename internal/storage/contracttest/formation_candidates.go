@@ -15,6 +15,38 @@ import (
 // scripted order deliberately does not claim to test semantic retrieval.
 func RunFormationCandidates(t *testing.T, factory IndexedFactory) {
 	t.Helper()
+	t.Run("formation_candidate_reused_canonical_source_cannot_add_independent_experience", func(t *testing.T) {
+		f := newFormationFixture(t, factory, false)
+		event := f.s.eventInScope("first-situation", f.first.scope, ledger.ActorKindUser,
+			"I cannot choose a workshop; all options feel equally urgent.")
+		// Core SourceEvent identity is full scope/ref. Reusing that exact
+		// identity in another run retains its canonical Session; changing
+		// Session would declare a different scoped event, not replay this one.
+		binding := ledger.EpisodeBinding{RunRef: f.s.prefix + "-clone-run", SourceGroupRef: f.s.prefix + "-clone-group", Role: ledger.RoleSituation}
+		f.s.observe(t, "clone-source", event, binding)
+		binding.Role = ledger.RoleAgentAct
+		act := f.s.eventInScope("clone-act", event.Scope, ledger.ActorKindAgent, "I compared one tradeoff and left the decision with you.")
+		clone := f.s.observe(t, "clone-act", act, binding)
+		if clone.EpisodeRef == "" || clone.EpisodeRef == f.first.episode {
+			t.Fatal("source-reuse control did not materialize a separate run")
+		}
+		outcome := f.s.eventInScope("clone-outcome", event.Scope, ledger.ActorKindUser, "The one tradeoff helped.")
+		_, err := f.s.store.ReportOutcome(testContext(t), ledger.OutcomeReport{
+			IdempotencyKey: f.s.prefix + "-clone-outcome", Event: outcome,
+			RunRef: binding.RunRef, SourceGroupRef: binding.SourceGroupRef, RelatedSourceEventRefs: []string{event.Ref, act.Ref},
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		f.index.candidates = []memoryindex.Candidate{{Kind: memoryindex.KindEpisode, Ref: f.first.episode}, {Kind: memoryindex.KindEpisode, Ref: clone.EpisodeRef}, {Kind: memoryindex.KindEpisode, Ref: f.second.episode}}
+		_, err = f.s.store.ConsolidateWindow(testContext(t), f.window("after-source-reuse"), callbackWorker(func(request consolidation.WorkerRequest) (string, error) {
+			assertFormationBasis(t, request, f.basis())
+			return "", nil
+		}))
+		if err != nil {
+			t.Fatal(err)
+		}
+	})
 	t.Run("formation_candidate_group_preserves_failure_and_filters_unqualified_pairs", func(t *testing.T) {
 		f := newFormationFixture(t, factory, true)
 		_, err := f.s.store.ConsolidateWindow(testContext(t), f.window("preserve"), callbackWorker(func(request consolidation.WorkerRequest) (string, error) {

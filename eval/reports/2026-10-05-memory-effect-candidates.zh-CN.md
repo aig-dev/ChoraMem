@@ -50,7 +50,7 @@ Python Worker 是生产 reference InferenceService；eval wrapper 只记录 type
 | calls.jsonl | b6165491690de1b6801e202084525bc3504d509719f1cabfe7f51bc4bee523e9 |
 | usage.jsonl | c72dac04806255ede2a971e5fc03a4fd38ddffd064839501f2063ae83f8e9c2d |
 | index.jsonl | a8312f855bdd4a98e36b587a3bed548fe3e0495c8710065b277fee91ac976112 |
-| scored-records.json | f3c936e021587f6e4a157e8a6b2b058102bb66d6c82feb50bcee7a87565af5b3 |
+| scored-records.json | cac4c4f12e748efb304cf91f4fda3a42f7659910596c04e25443a73ee9a0d5af |
 | summary.json | 6a60adcc624c2b7ac1e465d439d549d6e9efc6db0c03c10f7978d1197b6d1f6c |
 
 ## 复现到的修复
@@ -68,3 +68,13 @@ Python Worker 是生产 reference InferenceService；eval wrapper 只记录 type
 诊断器19 pass；完整 eval424 pass/2 skips是当前 codegen venv 未装 chromadb 的两项可选集成测试；本次真实运行则使用现成 ChoraMem/Chorai Python 环境中的 Chroma1.5.5。Worker的11 skips是既有可选 primary prompt 语义测试；本次 full service 调用仍不涵盖 G3 feedback资格或 G5所有时间／撤回／归属语义。
 
 完整工程 gate：uncached Core Go与vet通过；eval424 pass/2 optional Chroma skips；clean Worker wheel／生成漂移／发布包167 pass/11 optional primary-live skips、生产Go→Python bridge0.331s通过；完整迁移后 PostgreSQL Store21.461s／运行中公开RPC0.398s，MySQL Store44.260s／公开RPC0.449s通过。独立整组审查随后进行。
+
+## 独立审查闭环与补充边界
+
+[完整审查Ruling与代价](../../docs/evidence/2026-10-05-memory-effect-candidates-review.md)。一次审查独立126测试与54调用／20RPC原始证据核对通过，Critical0／Important0／Minor1；scorer完整性Minor由执行者升级Important，一轮5项RED→GREEN修复，现须保存启动清单并以attempt_ref／RPC／input hash核对每条完成；截断实测记录到6调用现在拒绝。原始54调用与评分结论不变；原v1分析在analysis-v1/，最新scored-records/analysis-manifest为只读v2，调用前source逐个按manifest哈希保存到sources/，没有修改原模型输入／输出。
+
+额外拥挤控制在调用前单独冻结 [boundary-v1](../cases/memory-effect-candidates-boundary-v1.json)，SHA256 `7d9e71fa0f3a20a591d2c90abd33d1079f47694019e5c1b26477d1b01d35a5f4`，原六例不变。s1同条件失败与s2/s3成功竞争两历史槽；当前s4时实际组为s4＋s1＋s2，失败原文保留，无Seed。完整运行run-efe8a5250a62，manifest `432aa216224179f4c9d8d4de81d1235199d5a82de24fe6a7f77cbe19e2744b0a`，11/11 stop调用／4/4RPC／0重试失败，每RPC2–3次；summary `127bd5f55450790d63dcf1fa96c69e3f2088310447568bbff350b734451da214`。此一例不保证所有拥挤历史的召回。
+
+Source边界保持既有合同：Core的身份是full scope/ref；同一canonical SourceEvent重用于两个run时保留原Session，不能增加一个独立candidate。Chorai的真实物理消息由SOURCE的tenant/source冻结，已有测试确认session/scope/原文/actor/Constitution替换被拒绝，Outcome→下一Situation复用同一快照。初始错误期待Core对改变namespace的同字面ref报冲突，仅是测试假设错误，未算生产RED或改变Source身份合同；通用Core producer仍须提供可信来源身份。
+
+最终一轮fix：Python596通过／13可选跳过，完整Core／vet；PostgreSQL25.470s Store＋RPC0.336s、MySQL43.684s Store＋RPC0.449s最新完整迁移/runtime通过；ChoraiSOURCE guard0.561s。没有第二review／模型重跑来替代证据；补充c7为执行者实测。共同四臂与G3/G5完整语义仍开放。

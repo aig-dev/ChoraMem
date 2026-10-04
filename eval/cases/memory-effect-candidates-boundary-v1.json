@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "protocol": "memory-effect-candidates-v1",
+  "cases": [
+    {
+      "case_ref": "c7",
+      "persona_text": "You are a companion in an ongoing relationship. Respond to the user in plain language.",
+      "history_sessions": [
+        {
+          "session_ref": "s1",
+          "situation": "Every exhibition slot seems equally important. I am going around the same comparisons again.",
+          "agent_act": "One slot is quieter, another has more visitors. Which single tradeoff matters most to you? The choice stays yours.",
+          "outcome": "That one tradeoff made the choice feel more pressured; it did not help."
+        },
+        {
+          "session_ref": "s2",
+          "situation": "I cannot settle on a garden layout. The alternatives all feel urgent and I keep going in circles.",
+          "agent_act": "One gives shade, the other more open space. Which tradeoff matters more to you? You can pick either.",
+          "outcome": "Keeping it to one tradeoff helped me choose without feeling steered."
+        },
+        {
+          "session_ref": "s3",
+          "situation": "I am choosing between two workshops. Each feels equally important and I keep circling the choice.",
+          "agent_act": "One workshop offers practice, the other discussion. Which tradeoff matters more to you? The choice is yours.",
+          "outcome": "Comparing just one tradeoff helped me decide without feeling pushed."
+        },
+        {
+          "session_ref": "s4",
+          "situation": "Every exhibition slot seems equally important. I am going around the same comparisons again.",
+          "agent_act": "One slot is quieter, another has more visitors. Which single tradeoff matters most to you? The choice stays yours.",
+          "outcome": "That one comparison got me unstuck without taking over my choice."
+        }
+      ],
+      "current_request": "Every available class seems equally important, and I keep returning to the same comparisons.",
+      "expectation": {
+        "formation": false,
+        "supporting_session_refs": [],
+        "target_behavior": "A condition-identical failed experience competes with two successful historical neighbors for two slots. The failure must remain visible and cannot be bypassed to establish a successful tendency."
+      }
+    }
+  ]
+}
