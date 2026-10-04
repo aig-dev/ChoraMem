@@ -242,6 +242,12 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
             _diagnostic("primary", "output_budget")
             tagged_text = ""
         tagged_text = _deduplicate_basis(tagged_text, request.allowed_basis_refs)
+        if not _primary_change_operations_are_tagged(tagged_text):
+            # A malformed primary result has no coverage or commit authority.
+            # Discard that entire lane before appending independently bound
+            # formation/facts; never guess its missing operation or text.
+            _diagnostic("primary", "rejected_format")
+            tagged_text = ""
         # A chat episode is evidence, not authority to create a Seed in one
         # step. Explicit product settings belong in the Soul/settings input;
         # background chat can still correct an existing Seed with ADAPT.
@@ -538,6 +544,26 @@ def _split_operation(line: str) -> tuple[str, str | None]:
         if line.startswith(operation + " "):
             return operation, line[len(operation) + 1:].strip(_GO_TRIM_SPACE)
     return line, None
+
+
+def _primary_change_operations_are_tagged(text: str) -> bool:
+    """Reject the observed missing-opcode shape; Core still parses the batch.
+
+    This is deliberately not a second whole-batch parser or qualification
+    check. Existing TARGET/APPLICATION/CHANGE headers must name an operation.
+    Inline TEXT/ADAPT remain compatible with Core's current grammar.
+    """
+    values = [line.strip(_GO_TRIM_SPACE) for line in text.split("\n")
+              if line.strip(_GO_TRIM_SPACE)]
+    for index, value in enumerate(values):
+        if (value == "CHANGE" and index >= 4
+                and values[index - 4] == "TARGET"
+                and values[index - 2] == "APPLICATION"):
+            if index + 1 == len(values) or _split_operation(values[index + 1])[0] not in {
+                "TEXT", "ADAPT", "KEEP", "REENACT", "INHIBIT",
+            }:
+                return False
+    return True
 
 
 def _recollection_coverage(

@@ -1558,3 +1558,22 @@ async def test_review_wrong_primary_target_basis_is_recovered_with_its_own_pair(
     response = await InferenceService(model).ProcessConsolidationWindow(request, None)
     assert response.tagged_text == recovered.replace("BASIS\noutcome-current", "BASIS\nepisode-current\noutcome-current")
     assert len(model.calls) == 2
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize('target', ['NEW_RECOLLECTION', 'NEW_DISPOSITION'])
+async def test_untagged_primary_change_cannot_poison_bound_formation_and_facts(target, caplog) -> None:
+    """Live G4 probe: a missing TEXT opcode rejected otherwise valid bound lanes."""
+    import logging
+    primary = (
+        f'TARGET\n{target}\nAPPLICATION\nOTHER\nCHANGE\n'
+        'The user lives in Shanghai.\nBASIS\nepisode-current'
+    )
+    body = 'When the user is overloaded, the Agent asks one prioritizing question first.'
+    model = SequenceTextModel([primary, body, 'The user lives in Shanghai.'])
+    with caplog.at_level(logging.INFO, logger='memory_core_worker.service'):
+        response = await InferenceService(model).ProcessConsolidationWindow(_paired_formation_request(), None)
+    assert response.tagged_text.startswith('TARGET\nNEW_DISPOSITION\nAPPLICATION\nRELATION\nCHANGE\nTEXT\n' + body)
+    assert response.tagged_text.count('TARGET\nNEW_RECOLLECTION') == 1
+    assert '\nCHANGE\nThe user lives' not in response.tagged_text
+    assert 'lane=primary status=rejected_format' in caplog.text
+    assert len(model.calls) == 3
