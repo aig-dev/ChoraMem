@@ -169,6 +169,9 @@ candidate 的 `origin` 可为 `related`，也可为 scheduler overlap 带入的 
 Core 用同类日志补充提交资格拒绝与 stale snapshot，runtime retry sink 只输出安全错误类别。
 模型失败仍是可重试的失败 RPC；预算或格式的 safe no-op 规则保持不变。日志数量和 produced
 只说明文本处理进展，不证明 Core 提交或回应有效。
+主 pass 在已识别的 TARGET／APPLICATION／CHANGE 头之后漏写操作标签时，整个主 pass
+结果被丢弃并记录 `primary/rejected_format`，不猜测 TEXT、不提供事实 coverage；随后仍可
+绑定独立的形成／事实结果。该窄检查不解析完整批次；最终整批语法与资格仍由 Core 原子校验。
 
 ## 本地运行
 
