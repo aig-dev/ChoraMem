@@ -166,3 +166,5 @@ G3／G5 的具体遗漏与验收分解见 [Worker 优化计划](../plans/2026-10
 G3／G5 Worker 进展：Task1 `dc9d48e` 已修复逐目标反馈遗漏和 existing ADAPT 被清除，主 prompt 不再提供不可提交的新 ADAPT；Task2 已通过 new／KEEP／revision 的独立事实覆盖、准确重复过滤、无效 Target/Application/Basis 不授予 coverage 和完整四次调用上限。Worker147 tests通过，11 optional live tests跳过。日志分类、两数据库提交链与未见模型行为仍待完成，不能将受控文本回归解释为自然分布 uplift。
 
 G3／G5 Task3：安全日志已区分正常无变化、无合格材料、格式／资格拒绝、输入／输出预算、Worker 失败与 stale。超长 feedback 在归一化前拒绝；异常消息不携带 provider／来源正文，失败仍可重试。Worker155 tests通过，11 optional live跳过；完整 Core Go 及 PostgreSQL／MySQL 迁移后完整 Store、运行中 memoryd RPC测试通过。Task4 整组审查与共同 held-out 尚未完成。
+
+G3／G5 Task3提交 `26f03f8`。Task4的完整 Core／vet／Worker 发布包与跨进程 smoke、两数据库最新 memoryd runtime 均已通过；架构与 Worker 文档已同步，整组独立审查正在进行。共同效果 gate 仍保持待验证，不将11个跳过的主 prompt 语义用例计作实测通过。

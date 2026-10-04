@@ -23,9 +23,11 @@ Basis 由程序绑定；统一 lane 对同一形成资格给出的 `NEW_DISPOSIT
 `NEW_DISPOSITION ADAPT`。用户显式产品设置属于 Harness 的 Soul／Constitution 真源；聊天内直接
 纠正一个已有 Seed 仍可在统一 lane 对该 exact Target 使用 `ADAPT`。因此 focused 跨 session 形成
 不会再被模型自行声称的“一次直接授权”旁路。
-若结果没有处理 Recollection，且窗口含有 Core 已确定身份的当前 USER 材料，现有
-Recollection-only 纯文本后备继续运行，返回 1–32 行独立正文或 `NO_MEMORY`。必要时既有
-feedback recovery 也保持独立。四个 lane 是一次无状态 RPC 内的文本处理，最多四次后台模型
+窗口含有 Core 已确定身份的当前 USER 材料且允许 NEW_RECOLLECTION 时，现有
+Recollection-only 纯文本后备继续检查独立剩余事实；一条主结果 KEEP／TEXT 不关闭整个窗口。
+已有正文与合格主结果只作为引用的临时去重覆盖，修订覆盖替换旧正文；模型排除已覆盖含义，
+程序过滤完全重复行并返回最多 32 行独立正文或 `NO_MEMORY`。反馈按完整 Target 块归一，
+保留本人 exact existing ADAPT；同一次 recovery 只处理尚未输出的合格反馈 Target。四个 lane 是一次无状态 RPC 内的文本处理，最多四次后台模型
 调用，不是新的调度 Pipeline；模型都不生成数据库 ID，Core 仍是唯一提交权威。
 
 ## 公共 turn 工作流
@@ -102,6 +104,7 @@ intake transaction
 - 多实例以 `FOR UPDATE SKIP LOCKED` 与 lease 竞争；
 - Worker 失败保留同一冻结窗口重试；
 - Core 已提交但 Job 尚未 ack 时，`consolidation_receipts` 让重试不再调用 Worker。
+- Worker、Store 和 runtime retry 使用现有日志输出固定 lane/status 和数量：no_change、no_eligible_material、rejected_format、rejected_qualification、input_budget、output_budget、model/worker_failure、stale_snapshot 等；无来源正文、refs、凭据或原始异常消息。无变化不是行为成功指标。模型异常仍使 RPC 失败并允许同窗口重试；Core 的原始错误仍决定重试，runtime 只记录安全类别。
 - 单条 Source text 最多 64 KiB，Core 内部 WorkerRequest 最多 3 MiB；超过预算的历史窗口冻结为 no-op，避免确定性超限造成永久阻塞；
 - 参考 Worker 默认再以 256 KiB 模型输入预算保护较小上下文模型，部署者可按模型调整；
 - Core 仅以当前窗口 Situation 文本对 active Recollection 做瞬时相关性排序，最多向 Worker 提供 64 个 targets；完整窗口 evidence 不裁剪，排序值不持久化、不进入公共协议，也不授予写入资格；

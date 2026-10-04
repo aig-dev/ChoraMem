@@ -36,8 +36,8 @@
 
 ## Task 4: Contract evidence and independent review
 
-- [ ] Synchronize architecture, Worker docs and authoritative goal with exact causal meaning, calls and limitations. Trace requirements to named tests and actual DB evidence.
-- [ ] Run Worker/full Core suites, relevant package/lint checks and shared DB integration; no external-provider or natural-distribution uplift claim from fixture results.
+- [x] Synchronize architecture, Worker docs and authoritative goal with exact causal meaning, calls and limitations. Trace requirements to named tests and actual DB evidence.
+- [x] Run Worker/full Core suites, relevant package/lint checks and shared DB integration; no external-provider or natural-distribution uplift claim from fixture results.
 - [ ] Commit and dispatch one fresh whole-plan reviewer. Re-grade findings and each declined-to-judge item; fix Critical/Important in one RED-to-GREEN pass, retain every Ruling and cost. Keep G4/common held-out behavior validation open until independently proven.
 
 ## Self-review
@@ -51,3 +51,19 @@ Task 1: three RED regressions proved missing second-target feedback, erased exis
 Task 2: three RED cases proved new/KEEP/revised Recollection swallowing an independent fact. GREEN always considers typed current material when NEW_RECOLLECTION is allowed; valid primary results provide quoted transient duplicate coverage and a revision replaces only its prior coverage. Exact duplicates are filtered before binding. Application/Target/current Episode Basis controls prevent invalid primary blocks from becoming coverage. Four-lane regression makes exactly four calls and retains an independent residual fact; formation KEEP fixture now returns NO_MEMORY from the residual call. Full Worker suite:147 passed,11 optional live cases skipped. Chronological correction/withdrawal/temporary/source attribution rules remain in the fact prompt and typed-material validator; semantic faithfulness/paraphrase dedup still need the full goal's live held-out checks.
 
 Task 3: behavioral RED proved absent safe diagnostic classes in Worker and real MySQL contracts, an oversized raw feedback response being normalized into an accepted change, and the runtime retry sink echoing a private error sentinel. GREEN distinguishes normal no-change, no eligible material, format/qualification rejection, input/output budgets, Worker failure and stale snapshots using fixed strings and counts only. Raw feedback is bounded before normalization. Model failure remains a failed retryable RPC with a static message; Core keeps original errors for retry while the runtime log class omits their text. Worker155 passed,11 optional live skipped; uncached full Core Go passed; PostgreSQL and MySQL complete migrated Store suites plus running-memoryd public RPC tests passed. Runtime retry-sink unit/full-Core verification was run after those DB scripts; the Task4 gate will exercise the final runtime revision. No schema or protocol change.
+
+Requirement-to-evidence trace (controlled fixtures do not establish model semantic benefit):
+
+| Requirement | Authoritative test / artifact |
+|---|---|
+| Every eligible feedback target, no completed-target repetition | `test_worker_recovers_each_missing_feedback_target_once`, `test_worker_feedback_recovery_cannot_repeat_an_already_processed_target` |
+| Existing ADAPT survives, impossible new route absent | `test_worker_preserves_existing_direct_adapt_when_feedback_is_also_eligible`, `test_worker_prompt_offers_only_existing_adaptation` |
+| New / KEEP / revision retain independent facts, exact duplicates excluded | `test_primary_recollection_keeps_residual_fact_and_filters_exact_duplicate`, `test_primary_keep_does_not_suppress_an_independent_current_fact`, `test_primary_existing_revision_replaces_old_coverage_and_keeps_residual_fact` |
+| Coverage has no new qualification, fixed call ceiling | `test_invalid_primary_fact_does_not_gain_duplicate_coverage`, `test_worker_all_four_lanes_keep_residual_fact_with_fixed_call_ceiling` |
+| Safe outcome diagnostics, raw feedback budget, RPC retry | `test_worker_reports_safe_outcome_class_without_source_or_credentials`, `test_oversized_feedback_is_rejected_before_normalization_can_hide_its_budget`, `test_worker_grpc_failure_keeps_retry_and_never_exposes_provider_text` |
+| Both Stores preserve safe no-op and stale transaction semantics | shared `consolidation_safe_diagnostics_distinguish_noop_rejection_and_budget`, existing stale concurrent-state contract with safe log assertion; complete PostgreSQL/MySQL runtime scripts |
+| Runtime sink omits raw error payload | `TestMemoryRetryLogDoesNotEchoSourceOrProviderErrorPayload` |
+
+The eleven opt-in primary-prompt cases call the model directly; they do not prove full-service residual extraction, semantic dedup, per-target causal attribution, or committed behavioral benefit. Those remain in the full goal's live held-out gate. No schema/protocol changes in this plan.
+
+Task4 verification at26f03f8 plus documentation only: uncached full Core Go and go vet passed; verify-worker passed155 tests/11 optional live skipped, exact generated bindings, clean wheel and production Go-to-Python bridge. PostgreSQL runtime script passed25.806s Store/0.323s RPC; MySQL41.531s Store/0.442s RPC. These scripts migrate fresh databases, build/start the final memoryd and check readiness before public RPC. Independent review remains pending.

@@ -130,10 +130,11 @@ Situation／AgentAct 原文，按角色引用。绑定的 Basis 覆盖所读 Epi
 空 session、跨 session 同名 Source、跨 Episode 共享不可变 Source 仍沿袭 Ledger 的有效语义。
 该接口只负责材料读取和新 Recollection 正文绑定，不提交数据库，也不为
 已有记忆修订或相似度去重另造一套权威。默认 tagged-text Worker 先运行前述统一协议；
-若主结果没有新建 Recollection，也没有以既有 Recollection 为 Target，才在存在
-合格 USER 材料时自动做一次 Recollection-only 后备调用。后备调用只看已有
-Recollection 正文而不看数据库 ID，只能返回 1–32 行新 `OTHER` 正文或
-`NO_MEMORY`。每行必须只有一个持久含义；程序去掉完全重复行，并把每行分别绑定为
+只要允许 NEW_RECOLLECTION 且存在合格当前 USER 材料，就做最多一次
+Recollection-only 剩余事实调用；主结果的一条 KEEP／TEXT 不关闭全窗口。后备调用只看
+已有正文和合格主结果的临时去重覆盖，不看数据库 ID；修订在该覆盖中替换旧正文。
+模型排除已覆盖含义，只能返回 1–32 行独立的新 `OTHER` 正文或 `NO_MEMORY`。
+每行必须只有一个持久含义；程序排除完全重复和已覆盖正文，并把每行分别绑定为
 一个可单独检索的 Recollection。模型应先输出每一项有依据的直接遗忘约束，再输出
 其他长期内容；超过 32 个不重复含义时只保留前 32 个。后备模型只看到当前 USER
 sources，因此 Core 也只把这些模型可见的当前 Episode 绑定为 Basis；相关旧 Episode
@@ -153,10 +154,21 @@ lane 产生的同类 `NEW_DISPOSITION TEXT` 块也会被机械移除，其他 Ta
 candidate 的 `origin` 可为 `related`，也可为 scheduler overlap 带入的 `current`；历史性由
 不同 session 与 Core 标记确定，Worker 不用批次 origin 代替时间判断。
 
-已有 Recollection 的 KEEP／修订、
+反馈输出逐完整 Target 块归一，其他主结果保留；本人长期纠正的既有 ADAPT 不按反馈归一。
+一次 recovery 只提供尚未处理的合格 Target，完成的 Target 不会重复提交。Core 仍校验
+每个 Target 的精确 Basis；规范化不授予资格。原始 feedback 输出先受 64 KiB 上限约束。
+
 推断型 Disposition 的每个形成 Basis 必须支持同一个完整回应倾向；不能把同主题下分别成立的
 多个动作拼成一个 Seed。Disposition 演化、精确去重与原子提交仍由统一路径和 Core 处理。因此每窗口的
 生成式后台调用上限为四次，在线 Select 仍为零次。
+
+## 安全运行诊断
+
+启动入口启用 INFO 日志。Worker 只输出固定 `lane/status/count`，区分正常无变化、无合格材料、
+格式拒绝、输入／输出预算、资格拒绝和模型失败；不输出来源、模型正文、refs、凭据或原始异常。
+Core 用同类日志补充提交资格拒绝与 stale snapshot，runtime retry sink 只输出安全错误类别。
+模型失败仍是可重试的失败 RPC；预算或格式的 safe no-op 规则保持不变。日志数量和 produced
+只说明文本处理进展，不证明 Core 提交或回应有效。
 
 ## 本地运行
 
@@ -204,9 +216,10 @@ pytest
 gRPC round trip，全程不访问外部模型。Core 根目录的 `make verify-worker` 还会启动一个
 test-only Python Worker，让生产 Go gRPC bridge 完成一次无 API key 的跨进程调用。
 
-可选的真实模型语义评测只发送仓库内的合成对话，覆盖 Recollection / Disposition 形成、
+可选的真实模型语义评测直接调用主 prompt，只发送仓库内的合成对话，覆盖 Recollection / Disposition 形成、
 既有记忆重固、行为—结果反馈、短暂事件过滤与提示词注入。它默认跳过；显式开启时会调用
-当前配置的外部模型：
+当前配置的外部模型。它不经过完整四 lane service、Core 提交或 Harness 行为，不能替代
+五方向 goal 的真实 held-out 链路验收：
 
 ```bash
 MEMORY_WORKER_LIVE_EVAL=1 \
