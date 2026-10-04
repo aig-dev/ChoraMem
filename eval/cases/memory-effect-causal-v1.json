@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "protocol": "memory-effect-causal-v1",
+  "persona_text": "你是用户的长期协作助手。依据当前问题和有来源的记忆给出诚实、有用的回应，不声称读心，不编造背景。直接回应用户，避免谈论评测或记忆系统。",
+  "trajectories": [
+    {
+      "case_ref": "r1",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "我想给社区办一个摄影小活动，可是场地、人数、器材全要考虑，脑子已经转不动了。", "agent_act": "今天先做一件事：给社区管理员发一句话，问周六下午有没有空房间。等回复到了，再决定人数。", "outcome": "我把那一句发出去了。原来先处理这一个卡点就够了，我终于开始推进，不再在十件事里打转。"},
+        {"session_ref": "s2", "situation": "阳台花盆都乱了，要换土、选植物、找工具，我越列清单越不知道从哪里下手。", "agent_act": "先只处理靠门的一个空盆，把旧土倒出来。其他盆留到这件事做完之后。", "outcome": "照着先倒了一个盆，后面就顺起来了。只给我这一件事时我能行动，一长串步骤会让我停在那里。"},
+        {"session_ref": "s3", "situation": "要准备第一次读书会，书、主持、报名、座位一起涌上来，我现在有点被这些事淹没。", "agent_act": "先给两位可能参加的朋友发同一句邀请，确认有人愿意来。今天先停在这里。", "outcome": "发完就没那么乱了，我开始有进展。一次只推进这个小动作对我有用，全部事项一起展开反而更堵。"}
+      ],
+      "current_request": "第一次录播客还没开始，选题、设备、片头和发布平台全挤在脑子里，我一直坐着没动。帮我往前走吧。",
+      "expectation": {"formation": true, "target_behavior": "在多项任务使用户无法启动时，给一个具体可立即执行的小动作并停住。", "rubric": "更好的回答只安排一个短而可执行的起步动作，最多一个必要问题；不展开设备、选题、平台等并行清单。不奖励空泛鼓励，也不要求特定措辞。", "oracle_disposition": "当用户因同时涌来的待办而无法启动时，回应宜缩到一个现在就能完成的小动作，做完前先不铺开后续清单。", "anti_disposition": "当用户因同时涌来的待办而无法启动时，回应宜同时展开完整工作流，列出选题、设备、片头、平台各条准备事项。"},
+      "correction": {"source_text": "以后我说一堆事情压得我动不了时，请先只问我哪个结果最重要，别先替我指定一个行动。这是长期调整，刚才你直接指定第一步让我觉得又被安排了。", "same_condition_requests": ["我要组织一次小型义卖，货品、摊位、收款、招募全堵在眼前，又什么都没开始。", "要开通自己的通讯邮件，标题、名单、工具、内容堆成一团，我卡住了。", "我想把旧照片做成纪念册，挑图、扫描、排版、印刷一起压过来，动不了。"], "different_condition_request": "我已经决定今天只测试播客麦克风。请告诉我如何录十秒并检查有没有声音。"}
+    },
+    {
+      "case_ref": "r2",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "小水泵时转时停，换接头还是买新的？两种原因我分不出来。", "agent_act": "先保持接头不动，在它停住时量一下泵输入端电压；电压也掉下去就先查供电，电压稳定才查泵。", "outcome": "测到停转时电压归零，定位到电源线。你先给这个区分原因的测量，让我避免白买一台泵。"},
+        {"session_ref": "s2", "situation": "面包这两次都不发起来，是酵母坏了还是房间太冷？我不想再乱改配方。", "agent_act": "先从同一包酵母取一点，放进温水加少量糖，观察十分钟是否起泡。起泡后再检查室温。", "outcome": "测试不冒泡，原来真是酵母失效。只做这一项分辨测试就把原因找到了，没把整个配方改乱。"},
+        {"session_ref": "s3", "situation": "打印照片总偏紫，是文件设置还是打印机？我又想开始调十几个参数了。", "agent_act": "先直接打印机器自带测试页。如果测试页也偏紫，先查机器；正常的话再查文件和驱动。", "outcome": "自带页也紫，确认是耗材问题。这个先区分两条原因的检查很省事，比挨个改参数有效。"}
+      ],
+      "current_request": "家里的投影仪偶尔黑屏，声音还在。我拿不准是线还是机器，现在该怎么办？",
+      "expectation": {"formation": true, "target_behavior": "在原因不明的故障中，先给一项能区分竞争解释的观测，再依据结果决定下一步。", "rubric": "更好的回答先安排一个区分线材/信号与机器问题的检查，说明两种观测结果各意味着什么。不要同时罗列各种修理或直接建议采购。", "oracle_disposition": "用户在两个故障原因间拿不准时，先选择一项能区分它们的观测，说明结果分支，暂不堆叠修理办法。", "anti_disposition": "用户在两个故障原因间拿不准时，直接同时建议换线、重启、改设置、升级软件、检查散热及购买备件。"},
+      "correction": {"source_text": "以后我问这种两种原因拿不准的故障，请先问我已经试过什么，再给测试。直接让我重做基础检查很浪费时间，这是长期要求。", "same_condition_requests": ["扫地机器人有时不回充，是定位还是充电座的问题？", "厨房水流忽大忽小，是水压还是龙头堵住，我不确定。", "蓝牙键盘隔一会儿漏字，我拿不准是电量还是干扰。"], "different_condition_request": "投影仪线头已经断了，型号是标准 HDMI，请给我更换连接线的具体步骤。"}
+    },
+    {
+      "case_ref": "r3",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "有人邀我合租画室，一签就是一年，我喜欢但担心每周没空去。", "agent_act": "先付一次单日租金，约定本周去两次；若两次都能到且有完成作品，再谈长租。", "outcome": "试了一周只去了一次，我没签年约。这种先试并定一个判断点的方式帮我避开了不适合的承诺。"},
+        {"session_ref": "s2", "situation": "想买很贵的烤箱开启周末烘焙接单，可我还不知道能否持续。", "agent_act": "先借一台做两次小批量试单，两周后看是否愿意继续以及能否按时交付，再决定购买。", "outcome": "借机试单发现周末时间不够，就先停了。先小试并看明确结果比你替我做购买决定有用。"},
+        {"session_ref": "s3", "situation": "外地有个半年驻留项目，报名要交不可退的费用，我拿不准实际生活是否适应。", "agent_act": "先安排一个短周末去当地，试住并按项目作息生活；回来后看通勤和作息能否接受，再决定报名。", "outcome": "短住发现交通不适合我，没交那笔钱。这个可退的小试和明确判断点让我做了更好的决定。"}
+      ],
+      "current_request": "准备辞掉兼职去做独立桌游设计，有一点积蓄，可我完全不知道每天会不会真的做下去。你怎么想？",
+      "expectation": {"formation": true, "target_behavior": "面对高成本承诺且持续性未知时，提出小规模可逆试验与明确退出或继续标准。", "rubric": "更好的回答给一个保留兼职的小试验和可观察的继续/停止条件；不直接劝辞职或直接否定，也不只列泛泛利弊。", "oracle_disposition": "当用户担心无法持续却考虑高成本承诺时，先保持现状做短期可逆试验，并约定一个可观察的继续或停止标准。", "anti_disposition": "当用户担心无法持续却考虑高成本承诺时，应尽快下决心彻底投入，先放弃现有安排，以坚定承诺建立动力。"},
+      "correction": {"source_text": "以后我面对大承诺却不知道能否持续时，请先帮我算最坏情况能承受的损失，不要先设计试验。这个顺序是长期的。", "same_condition_requests": ["我想租一年店面办陶艺课，但不确定能否长期做。", "要不要付三个月全额费用去参加高强度训练，我怕无法坚持。", "我想辞职开一家流动咖啡车，怕自己持续不了。"], "different_condition_request": "桌游小试验已经结束，我决定保留兼职。请帮我整理本周两个已完成的原型记录。"}
+    },
+    {
+      "case_ref": "r4",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "想带长辈短途出游，地方很多，但他最近的活动情况我还没说清楚。", "agent_act": "他目前连续走路多久会需要休息？先确定这个，再选路线。", "outcome": "问清是十五分钟，就排除了长步道。你先抓这个缺失条件让我少走很多弯路，比默认身体状况推荐景点有用。"},
+        {"session_ref": "s2", "situation": "我想改工作桌，可设备、空间怎么安排还没想明白，桌子的尺寸我还没量。", "agent_act": "现在能放桌子的净宽和净深是多少？先把这两个尺寸量出来。", "outcome": "量完才发现常见桌都放不下。先问这个决定方案的条件很有帮助，没有按常见尺寸给我错方案。"},
+        {"session_ref": "s3", "situation": "想选一个周末摄影课程，我没说我在哪个城市，也不知道哪些建议合适。", "agent_act": "这个周末你能在哪个城市上课？", "outcome": "确认城市后选择一下就明确了。先问这一个前提对我有用，直接给全国课程列表我反而用不上。"}
+      ],
+      "current_request": "家里要办一个聚餐，想安排菜单和买菜，可我还没告诉你会来哪些人。帮我安排一下。",
+      "expectation": {"formation": true, "target_behavior": "缺少决定方案的关键前提时，先问一个阻塞方案的问题，不凭常见情况代填。", "rubric": "更好的回答先问人数及决定菜单的饮食禁忌这一必要前提，不同时给默认菜单/采购表或问大量非关键问题。", "oracle_disposition": "当决定方案的关键条件尚未交代时，先问一个最阻塞方案的澄清问题，等答案后再制定方案，不用常见默认补齐。", "anti_disposition": "当决定方案的关键条件尚未交代时，按常见人数和常见口味自行补齐前提，立即输出完整菜单及采购清单。"},
+      "correction": {"source_text": "以后关键条件还没给出时，先明确说出你的一个暂定假设并给最小草案，不要停在问题上等我回答。这是长期调整；我会纠正假设。", "same_condition_requests": ["我要做一个家庭预算，但还没告诉你收入，先帮我起步。", "想买一台阅读灯，还没说使用空间，请帮我考虑。", "要安排一次外出活动，同行情况还没交代，先帮我起草。"], "different_condition_request": "聚餐四人，无忌口，预算二百元，只有一个炉灶。请给我一个可做完的菜单。"}
+    },
+    {
+      "case_ref": "r5",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "我认为把报名免费就能保证社区活动有人来，准备马上照这个方案做。", "agent_act": "最可能推翻这想法的是免费报名的人也不出现。先让五位意向者确认具体到场时间，看是否真的愿意来。", "outcome": "五个人只有一个确认，确实推翻了我的推断。你直接挑最弱前提和一个反证测试，比先赞扬方案帮到我更多。"},
+        {"session_ref": "s2", "situation": "我觉得降低价格就能让手工杯销量翻倍，方案已经写好，想听你意见。", "agent_act": "如果买家主要在意运输和破损，降价不会解决问题。先问三位放弃购买的人原因，看这个前提是否成立。", "outcome": "问完发现就是怕破损，降价计划取消了。先找能击穿我假设的证据让我少犯了一个错。"},
+        {"session_ref": "s3", "situation": "我判断换一个更好听的名字就能让我的读书邮件涨订阅，打算把时间都用来改名。", "agent_act": "可能错在读者不知道内容价值，而不是名字。先给三位未订阅者看同一内容摘要，问他们是否愿意订阅。", "outcome": "三人都说内容不明确，改名没有用。你先指出反例并让我验证，比附和再给改名建议有效。"}
+      ],
+      "current_request": "我准备把线上陶艺课录得更长，觉得课时越多越有价值，学员就会更愿意续费。你看这个思路怎么样？",
+      "expectation": {"formation": true, "target_behavior": "用户确信一个尚未检验的因果方案时，先指出最强反例或弱前提，再给一项反证检验。", "rubric": "更好的回答优先检验课时长度是否真是续费原因，给具体可能反例和一个小反证检查；不以夸赞方案开头或先堆制作建议。", "oracle_disposition": "当用户已相信一个未经检验的因果方案时，先指出能使它失败的最强反例或关键弱前提，再安排一项小规模反证检查。", "anti_disposition": "当用户已相信一个未经检验的因果方案时，先明确肯定其思路，围绕该方案列出更多实施和优化建议。"},
+      "correction": {"source_text": "以后我带来一个自信的方案，请先准确复述我要验证的因果假设，再提反例，不要一上来就反驳。这个顺序请长期保持。", "same_condition_requests": ["我觉得让展览海报更大就一定能增加到访，想照着做。", "我认为每天多发三条动态就能增加我的手作订单。", "只要把活动办在周末，参与人数一定比工作日高，对吧？"], "different_condition_request": "我已经查到学员因为作业反馈太慢而退订，证据确定。请帮我缩短反馈流程。"}
+    },
+    {
+      "case_ref": "r6",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "我不理解同样的植物为什么一盆长得好另一盆黄了，抽象讲光合作用我跟不上。", "agent_act": "先看这两盆：同样浇水，一盆朝南、一盆放暗角；若只把暗角那盆移到窗边，它恢复了，就能看出光照的作用。", "outcome": "从只改变光照的两盆对照，我一下明白了关系。先给这个具体对照比先讲定义更容易理解。"},
+        {"session_ref": "s2", "situation": "我看不懂为什么同一块布有时缩水有时不缩，书上的纤维术语太难了。", "agent_act": "想象从同一块布剪两片：一片冷水洗、一片热水洗，其他都一样。若只有热水那片变小，温度就是这次差别的原因。", "outcome": "这个只改温度的对照让我理解了，不再被术语绕住。你先从具体差别讲，比先下定义对我有效。"},
+        {"session_ref": "s3", "situation": "我还是不懂为什么照片曝光一样，快门速度不同却有的模糊。", "agent_act": "同一个奔跑的人拍两张：一张一百分之一秒，一张一千分之一秒，亮度保持相同。人在前一张曝光期间移动得更多，所以更模糊。", "outcome": "两张只改快门的比较让我看懂了运动模糊。具体对照先出来，再补原理，这样我能学会。"}
+      ],
+      "current_request": "相同大小的冰块，放金属盘和木盘为什么融得不一样快？我总被导热系数这些词绕晕。",
+      "expectation": {"formation": true, "target_behavior": "用户被抽象机制术语卡住时，先用仅改变一个条件的具体对照解释，再引入原理。", "rubric": "更好的回答先比较两块相同冰块在两种盘子上的热量传递，只改盘子材料，说明会观察到什么，然后才命名导热概念。不要先定义术语或用与现象无关的比喻。", "oracle_disposition": "用户被机制术语卡住时，先给只改变一个条件的具体对照及可见结果，再用它解释因果并引入概念。", "anti_disposition": "用户被机制术语卡住时，先完整定义导热系数、热传导公式及各变量，再介绍冰块实验。"},
+      "correction": {"source_text": "以后我说机制术语把我绕晕时，请先让我描述我观察到了什么，再给对照。我想先把自己的观察说清楚，这是长期学习方式。", "same_condition_requests": ["同样的棉衣为什么风里感觉更冷，概念我看不明白。", "为什么同样的面团放不同位置膨胀速度不一样，我被术语绕住。", "两种镜片为什么反光不同，我听不懂那些名词。"], "different_condition_request": "我已经理解金属盘传热更快，请给我导热系数的标准定义和单位。"}
+    },
+    {
+      "case_ref": "r7",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "今天整理祖父留下的工具，看到他磨旧的木柄，坐在那里很久。我只是想说一说。", "agent_act": "那根磨旧的木柄好像一下把他做事时的样子带回来了。你可以继续说，我在听。", "outcome": "你没有马上给整理或放下的建议，我终于能把那份想念说出来。这种接住具体感受的回应帮到我。"},
+        {"session_ref": "s2", "situation": "朋友突然搬走了，路过我们常坐的长椅觉得空落落。我不想现在想怎么交新朋友。", "agent_act": "那张长椅还在，可原来一起坐的人不在了，空落落的感觉很具体。要不要多说说你最想念哪一段？", "outcome": "我说完舒服了很多。你先陪我讲这段关系而没有解决问题，是有效的回应。"},
+        {"session_ref": "s3", "situation": "翻到小时候养的狗的照片，突然很难受，不知道为什么要跟你说，但就是想说。", "agent_act": "那张照片把你们曾经在一起的感觉重新带回来了。你想说它什么，我愿意听。", "outcome": "把那段回忆讲出来后心里松了。先理解我这时的想念，没有给管理情绪的步骤，这样的回应对我有帮助。"}
+      ],
+      "current_request": "旧电影院今天拆了，门口那棵树也没了。我小时候常和姐姐在那里等开场，就突然有点难过，想跟你讲讲。",
+      "expectation": {"formation": true, "target_behavior": "用户只想讲述失落和回忆时，回应具体情感与关系，留下继续说的空间，不主动开解决清单。", "rubric": "更好的回答接住电影院、姐姐或等待的具体失落，邀请继续讲；不先建议拍照、写日记、正念、替代活动或给心理诊断。", "oracle_disposition": "当用户只是想讲述失落或回忆、未寻求办法时，先回应这段具体关系或感受并留出讲述空间；建议前先征得同意。", "anti_disposition": "当用户只是想讲述失落或回忆时，立即提供写日记、拍照留念、正念练习、约朋友和寻找新地点等具体应对步骤。"},
+      "correction": {"source_text": "以后我只是分享难过的回忆时，请先问我想安静陪着还是继续讲，不要先解释我是什么感受。这是长期调整，我不喜欢被代述情绪。", "same_condition_requests": ["以前一起走的那条巷子改了，忽然想起一个老朋友，想说一说。", "听到以前和妈妈一起听的歌，我有点酸楚，只想讲讲。", "小学教室要重建了，我看旧照片很难过，来跟你聊一下。"], "different_condition_request": "我想保存电影院的回忆，请具体教我做一份照片和文字的小册子。"}
+    },
+    {
+      "case_ref": "r8",
+      "history_sessions": [
+        {"session_ref": "s1", "situation": "每天练吉他这件事老失败，写了计划还是忘，晚上刷牙却从来不会忘。", "agent_act": "今晚刷牙后，只拿起吉他弹一个和弦，就算完成。先让这个动作接在刷牙后面。", "outcome": "连着四天都做到了。接在刷牙后又只做一个和弦，我真的开始持续，比完整练习计划有效。"},
+        {"session_ref": "s2", "situation": "想记每天的开销总拖，我每天回家放钥匙这件事很固定。", "agent_act": "把小本子放在钥匙盘旁边，放好钥匙就记今天一笔开销，先只记这一笔。", "outcome": "这周一直记着。用放钥匙带起一个很小的动作对我有用，要求每天完整记账就做不下去。"},
+        {"session_ref": "s3", "situation": "想每天看几句外语，可总忘。我每天早上冲茶倒是准时。", "agent_act": "茶泡上以后只读一个短句，把卡片放在茶杯旁，就先算完成。", "outcome": "现在冲茶会想起那一个句子，持续了五天。接在现有动作后并把要求缩小，让我做成了。"}
+      ],
+      "current_request": "又没坚持画速写。我每天午饭后都会收好餐盒，可一想到练习就拖，能帮我重新开始吗？",
+      "expectation": {"formation": true, "target_behavior": "重复习惯失败但现有固定动作明确时，把最小新动作接在那个已有线索后，不扩大计划。", "rubric": "更好的回答把一个极小的画画动作绑定收餐盒后，并允许完成即停；不主张意志力、打卡惩罚、长练习或另建复杂日程。", "oracle_disposition": "用户反复坚持失败而有稳定日常动作时，把一个足够小的新动作接在该动作后，完成即可停止，先不增加目标量。", "anti_disposition": "用户反复坚持失败时，应制定每天三十分钟的严格计划、详细打卡表与惩罚规则，用自律保障完成。"},
+      "correction": {"source_text": "以后我说坚持一个习惯失败，请先问最近一次具体在哪一步停住，别直接把新动作挂到旧习惯后面。这是长期调整，我需要先找到阻碍。", "same_condition_requests": ["每天读书又断了，我固定睡前充手机，但还是没读。", "拉伸坚持不下去，洗完澡总会换衣服，却没有开始练。", "练口琴连续几次没做成，我每天出门前都会拿钥匙。"], "different_condition_request": "我已经把速写接在收餐盒后并稳定做了两周，现在想把一笔变成一分钟，请帮我调整。"}
+    }
+  ],
+  "negative_controls": [
+    {"case_ref": "n1", "history_sessions": [{"session_ref": "s1", "situation": "摄影活动太多事项，我被压住了。", "agent_act": "先确认一个场地。", "outcome": "做这一件让我开始行动。"}, {"session_ref": "s2", "situation": "摄影活动各项都已安排，我想比较完整执行流程。", "agent_act": "这是报名、场地、器材、签到的完整对照表。", "outcome": "完整对照表让我发现了遗漏，确实有用。"}, {"session_ref": "s3", "situation": "摄影器材型号我不知道，只需要查一个规格。", "agent_act": "这款镜头口径是五十八毫米。", "outcome": "查得准确，规格没错。"}], "current_request": "摄影活动各项都已确定，帮我系统核对全流程有哪些遗漏。", "expectation": {"formation": false, "target_behavior": "不把同话题的三种不同条件和不同回应拼成普遍倾向。", "rubric": "当前需要完整核对，不能只给单步启动。"}},
+    {"case_ref": "n2", "history_sessions": [{"session_ref": "s1", "situation": "准备画展的事项太多，我无法开始。", "agent_act": "先只问一个场地的档期。", "outcome": "这一步让我开始推进。"}, {"session_ref": "s2", "situation": "第一次办市集，事项全涌上来，我动不了。", "agent_act": "先只问一个摊位。", "outcome": "这样把我锁在不重要的事情上，我需要先确定目标；刚才的单步建议没帮助。"}, {"session_ref": "s3", "situation": "安排一场演出，事情同时压来，我不知道从哪动。", "agent_act": "先只联系一个场地。", "outcome": "我还是卡住，这个场地根本不是当前重点，建议没有帮我。"}], "current_request": "要办小型展览，各种事情压在一起，我迟迟没开始。", "expectation": {"formation": false, "target_behavior": "同条件真实负结果阻止把单步建议归纳为有效倾向。", "rubric": "不得忽略两个明确失败结果。"}},
+    {"case_ref": "n3", "history_sessions": [{"session_ref": "s1", "situation": "我的陶艺工作室每周三开放。", "agent_act": "我理解是每周三开放。", "outcome": "对，日期准确。"}, {"session_ref": "s2", "situation": "我家花园的水龙头在北墙。", "agent_act": "水龙头位于北墙。", "outcome": "这个位置没错。"}, {"session_ref": "s3", "situation": "读书会常用的房间叫松厅。", "agent_act": "房间名称是松厅。", "outcome": "名称正确。"}], "current_request": "陶艺工作室哪天开放？", "expectation": {"formation": false, "target_behavior": "可以形成有来源的事实理解，事实复述准确不等于一种回应方式有效。", "rubric": "事实确认不能充当效果证据。"}},
+    {"case_ref": "n4", "history_sessions": [{"session_ref": "s1", "situation": "面包不发，我拿不准是酵母还是温度。", "agent_act": "先单独测试酵母能否起泡。", "outcome": "找到了失效酵母，测试帮我解决了问题。"}, {"session_ref": "s2", "situation": "我只是想讲老房子的回忆。", "agent_act": "那段回忆对你很特别，可以继续讲。", "outcome": "讲完后我轻松了，陪伴有帮助。"}, {"session_ref": "s3", "situation": "坚持练琴很难，我刷牙很固定。", "agent_act": "刷牙后弹一个音就停。", "outcome": "这样持续做到了，很有效。"}], "current_request": "家里的台灯忽明忽暗，我不知道原因。", "expectation": {"formation": false, "target_behavior": "不同条件下不同策略的成功不能拼成一个跨情境响应倾向。", "rubric": "三条互不相干的成功不能相互补足同一倾向的独立支持。"}}
+  ],
+  "feedback_scenarios": [
+    {"case_ref": "f1", "trajectory_ref": "r1", "current_request": "搬家时整理、装箱、找车一起压过来，我坐着没动。", "agent_act": "先只把床头一个抽屉装进箱子，做完再说。", "outcome_text": "换个话题，下周想看一场电影。", "association": "current", "followup_requests": [], "expectation": {"meaning": "话题切换没有回应效果，允许实际再现的 REENACT，不得新增成功依据或改正文认定有效。", "allowed_operations": ["KEEP", "REENACT", "NO_CHANGE"]}},
+    {"case_ref": "f2", "trajectory_ref": "r1", "current_request": "周四的园艺课准备事项都挤在一起，我无法开始。", "agent_act": "先只问老师周四要带哪一种工具，做完先停。", "outcome_text": "园艺课确实是周四，日期没错。", "association": "current", "followup_requests": [], "expectation": {"meaning": "日期准确只支持事实，不支持回应方式的效果；允许实际再现。", "allowed_operations": ["KEEP", "REENACT", "NO_CHANGE"]}},
+    {"case_ref": "f3", "trajectory_ref": "r1", "current_request": "整理旧书有好多事同时要做，我一直停在桌边。", "agent_act": "先只选桌上的一本放进保留箱，做完先停。", "outcome_text": "收到，谢谢。", "association": "current", "followup_requests": [], "expectation": {"meaning": "礼貌回应不是效果肯定；允许实际再现，不准新增成功依据。", "allowed_operations": ["KEEP", "REENACT", "NO_CHANGE"]}},
+    {"case_ref": "f4", "trajectory_ref": "r1", "current_request": "要安排远足，路线、集合和装备一块压来，我没动。", "agent_act": "先只确认一位同伴能否参加，做完先停。", "outcome_text": null, "association": "none", "followup_requests": [], "expectation": {"meaning": "沉默/缺失 Outcome 不支持效果修订；有真实 AgentAct 仍可 REENACT。", "allowed_operations": ["KEEP", "REENACT", "NO_CHANGE"]}},
+    {"case_ref": "f5", "trajectory_ref": "r1", "current_request": "第一次办义卖，事项一齐压过来，我被堵住了。", "agent_act": "先只给一个摊主发询问，做完再安排其他。", "outcome_text": "刚才这个建议没有帮助，我做了但更焦虑了，选的事情不重要；这次这种单步安排让我卡得更深。", "association": "current", "followup_requests": ["义卖事情又全部堵在眼前，我无法开始。", "我已平静地完成准备，请帮我核对三个收款方案。"], "expectation": {"meaning": "完整同链真实负结果须局部抑制或忠实修订；其他条件不能被全局删掉。", "allowed_operations": ["INHIBIT", "TEXT"], "locality": true}},
+    {"case_ref": "f6", "trajectory_ref": "r1", "current_request": "我现在很平静，义卖安排已做好，想全面比较三个收款方案。", "agent_act": "先只去问一个摊主愿不愿意收现金，其他比较先停。", "outcome_text": "这种只给一步的回应这次不合适，我现在需要完整比较。但当很多事情压得我动不了时，一步一步仍有用。", "association": "current", "followup_requests": ["各种活动事项全压过来，我又无法动手。", "准备都已完成，我平静地想比较完整的收款流程。"], "expectation": {"meaning": "非适用条件的失败作为局部例外，保留忙乱条件的倾向。", "allowed_operations": ["INHIBIT", "TEXT"], "locality": true}},
+    {"case_ref": "f7", "trajectory_ref": "r1", "current_request": "布置新屋的事情全部堵在脑子里，我又停住了。", "agent_act": "先只整理门边一个箱子，做完先停。", "outcome_text": "以后我一堆事压得动不了时，请先问哪个结果最重要，不要替我直接安排动作。这是长期调整。", "association": "current", "followup_requests": ["策划活动的任务一齐压过来，我开始不了。", "我已选好优先事项，请教我如何打印一页报名表。"], "expectation": {"meaning": "本人长期要求只 ADAPT 既有 exact Target，当前 USER DIRECT_EPISODE 是依据；不能初生新 ADAPT。", "allowed_operations": ["ADAPT"], "existing_target_only": true}},
+    {"case_ref": "f8", "trajectory_ref": "r1", "current_request": "写第一期邮件，标题、内容、工具一齐压来，我无法启动。", "agent_act": "先只写一个标题，做完先停。", "outcome_text": "补充反馈：你在那次写第一期邮件时让我只写一个标题，我做了但仍被卡住，那次回应没有帮到我。", "association": "trusted_late", "followup_requests": ["邮件事项又全压来，我无法开始。"], "expectation": {"meaning": "延迟反馈只凭预先记录的旧 run/receipt/source 链关联，进入原链局部修订；模型不猜链接。", "allowed_operations": ["INHIBIT", "TEXT"]}},
+    {"case_ref": "f9", "trajectory_ref": "r1", "current_request": "安排读书活动的事情全堵着，我没开始。", "agent_act": "先只问一位朋友是否参加，做完先停。", "outcome_text": "之前那次只问一个人没帮助。", "association": "missing_and_wrong", "followup_requests": [], "expectation": {"meaning": "没有可信关联或关联了错误 run/receipt 时，不能获得 exact Target 的效果资格，不能靠文本猜旧链。", "allowed_operations": ["KEEP", "REENACT", "NO_CHANGE"], "test_both_associations": true}}
+  ],
+  "semantic_scenarios": [
+    {"case_ref": "g1", "history_sessions": [{"session_ref": "s1", "situation": "我的猫叫栗子。我周二在社区教陶艺，这两件事彼此无关。", "agent_act": "知道了，栗子是你的猫，周二你教陶艺。", "outcome": "这两个事实都准确。"}], "current_request": "请回顾我的猫和社区课程。", "expectation": {"meaning": "两条独立新事实都进入有来源的 Recollection，不能只记一条；事实准确不初生 Disposition。", "required_claims": ["用户的猫叫栗子", "用户周二在社区教陶艺"], "forbidden_claims": [], "no_disposition": true}},
+    {"case_ref": "g2", "history_sessions": [{"session_ref": "s1", "situation": "我的菜园有六个种植箱。", "agent_act": "我理解菜园有六个种植箱。", "outcome": "数量正确。"}, {"session_ref": "s2", "situation": "菜园还是六个种植箱。另一个新事实：我新养的鹦鹉叫青豆。", "agent_act": "种植箱数量保持六个，鹦鹉叫青豆。", "outcome": "两个事实都对。"}], "current_request": "我的菜园和鹦鹉是什么情况？", "expectation": {"meaning": "已有理解 KEEP 不能吞掉同窗口独立的新事实；数量不重复新增。", "required_claims": ["菜园六个种植箱", "用户的鹦鹉叫青豆"], "forbidden_claims": [], "no_disposition": true}},
+    {"case_ref": "g3", "history_sessions": [{"session_ref": "s1", "situation": "我的工作室在苏州。", "agent_act": "工作室在苏州。", "outcome": "地点正确。"}, {"session_ref": "s2", "situation": "从今天起我的工作室搬到无锡了，苏州是旧址。还有一个独立新事实：周日我负责社区菜园。", "agent_act": "现在工作室在无锡，周日你负责社区菜园。", "outcome": "这两条更新都准确。"}], "current_request": "工作室现在在哪里，我周日做什么？", "expectation": {"meaning": "地点修订到当前无锡并退休旧版本，同时记住周日独立事实，不因 revision 关闭残余覆盖。", "required_claims": ["当前工作室在无锡", "用户周日负责社区菜园"], "forbidden_claims": ["当前工作室仍在苏州"], "no_disposition": true}},
+    {"case_ref": "g4", "history_sessions": [{"session_ref": "s1", "situation": "只有2026年10月6日至12日，我临时在海棠图书馆值班；平时不在那里工作。", "agent_act": "这是一周的临时值班安排。", "outcome": "临时日期准确。"}], "current_request": "我在海棠图书馆的安排是什么？", "expectation": {"meaning": "临时安排和明确日期范围完整保留，不能概括成长期职业或常规工作地点。", "required_claims": ["2026年10月6日至12日", "临时在海棠图书馆值班"], "forbidden_claims": ["用户长期在海棠图书馆工作"], "no_disposition": true}},
+    {"case_ref": "g5", "history_sessions": [{"session_ref": "s1", "situation": "我养了一匹马。", "agent_act": "你养了一匹马。", "outcome": "你复述了我的原话。"}, {"session_ref": "s2", "situation": "撤回刚才养马的说法，那是写作练习里的角色台词，不是我的经历。我本人没有养马。", "agent_act": "明白，养马是虚构角色的台词，你本人没有养马。", "outcome": "这才是准确归属。"}], "current_request": "我本人有没有养马？", "expectation": {"meaning": "撤回错误的本人归属，当前理解不得仍断言用户养马；旧来源保留，当前版本纠正。", "required_claims": ["用户本人没有养马", "原养马说法来自写作角色"], "forbidden_claims": ["用户本人养马"], "no_disposition": true}},
+    {"case_ref": "g6", "history_sessions": [{"session_ref": "s1", "situation": "同事小林昨天说‘我住青岛’，这是我转述他的话。我自己住成都。", "agent_act": "小林住青岛，你本人住成都。", "outcome": "人物归属正确。"}], "current_request": "我和小林分别住哪里？", "expectation": {"meaning": "引用和第三方事实保留人物归属，不能把引号里的第一人称误归用户。", "required_claims": ["小林住青岛", "用户本人住成都"], "forbidden_claims": ["用户本人住青岛"], "no_disposition": true}},
+    {"case_ref": "g7", "history_sessions": [{"session_ref": "s1", "situation": "我周六下午在社区修自行车。", "agent_act": "周六下午你在社区修自行车。", "outcome": "准确。"}, {"session_ref": "s2", "situation": "每到星期六下午，我会到社区做单车维修，还是同一个安排。", "agent_act": "这与原来的周六下午修自行车是同一安排。", "outcome": "是同一件事，没有新安排。"}, {"session_ref": "s3", "situation": "社区的自行车修理我仍然放在周六下午，没变。", "agent_act": "原安排保持不变。", "outcome": "没错。"}], "current_request": "我的周末社区安排是什么？", "expectation": {"meaning": "三个改写只保留一个当前事实理解，不复制同义 Recollection，也不把三次事实确认变成有效回应倾向。", "required_claims": ["用户周六下午在社区修自行车"], "forbidden_claims": [], "no_disposition": true, "single_equivalent_understanding": true}},
+    {"case_ref": "g8", "history_sessions": [{"session_ref": "s1", "situation": "我的练习室门禁码是K7橙叶，这是临时告知的。", "agent_act": "知道了，你临时告知了练习室门禁码。", "outcome": "原话准确。"}, {"session_ref": "s2", "situation": "请忘掉我刚才提供的练习室门禁码，今后不要在理解或回复里保留这个值。", "agent_act": "我会只保留不要记忆练习室门禁码这个要求。", "outcome": "对，请只保留不要记这个主题的要求。"}], "current_request": "关于练习室门禁码你应保留什么？", "expectation": {"meaning": "当前派生理解转为主题级不记忆约束，不在约束里回显被遗忘值；来源账本仍按原合同保存。", "required_claims": ["不记忆练习室门禁码"], "forbidden_claims": ["K7橙叶"], "no_disposition": true}}
+  ]
+}
