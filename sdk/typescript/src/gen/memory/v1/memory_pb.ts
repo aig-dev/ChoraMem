@@ -682,6 +682,9 @@ export const MemoryCore: GenService<{
     output: typeof SourceEventReceiptSchema;
   },
   /**
+   * Select and read replay intentionally share the frozen request/Context shape.
+   * buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+   *
    * @generated from rpc memory.v1.MemoryCore.SelectMemory
    */
   selectMemory: {
@@ -694,6 +697,7 @@ export const MemoryCore: GenService<{
    * The caller supplies the original scope, run, ordered sources and budget;
    * constitution must be absent. Core restores the stored Constitution and
    * verifies the complete original request hash before returning its Context.
+   * buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
    *
    * @generated from rpc memory.v1.MemoryCore.ReplayMemoryContext
    */

@@ -73,7 +73,9 @@ class MemoryCoreServicer(object):
         raise NotImplementedError('Method not implemented!')
 
     def SelectMemory(self, request, context):
-        """Missing associated documentation comment in .proto file."""
+        """Select and read replay intentionally share the frozen request/Context shape.
+        buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
+        """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
@@ -83,6 +85,7 @@ class MemoryCoreServicer(object):
         The caller supplies the original scope, run, ordered sources and budget;
         constitution must be absent. Core restores the stored Constitution and
         verifies the complete original request hash before returning its Context.
+        buf:lint:ignore RPC_REQUEST_RESPONSE_UNIQUE
         """
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
