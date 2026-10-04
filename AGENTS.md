@@ -15,7 +15,7 @@
 - AI 只做后台文本加工。默认输出浅层 tagged text；不让模型生成 ID、confidence、strength、权重或长理由。
 - Core 在模型外决定 scope、目标资格、幂等、版本、并发与事务提交；普通流程没有人工审批节点。
 - 在线 `Select` 不调用生成式 AI；索引与 embedding 是可替换、可重建的选择投影，不是权威事实。
-- Seed 是未来理解、关注与回应的潜在倾向，不是 Agent 回复模式复制。一次本人长期要求可 ADAPT；间接推断须两份来源不重叠的经历。Core 校验 actor、owner、版本与资格，仅同一 Worker 判断长期要求语义；Agent 重复输出和沉默不算认可。
+- Seed 是未来理解、关注与回应的潜在倾向，不是 Agent 回复模式复制。本人长期纠正只可 ADAPT 既有合格 Seed，普通聊天不能单步初生新 ADAPT；间接推断须两份来源不重叠的经历。Core 校验 actor、owner、版本与资格，仅同一 Worker 判断长期要求语义；Agent 重复输出和沉默不算认可。
 - Constitution 是来源绑定、只读的外生 Agent 角色快照，不是用户隐藏档案、Target 或 Basis。AI 仍只输出 `TARGET / APPLICATION / CHANGE / BASIS`，没有分类 Job。
 
 ## 代码边界

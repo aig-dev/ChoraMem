@@ -1202,3 +1202,95 @@ async def test_incomplete_provider_output_fails_rpc_and_same_request_can_be_retr
     finally:
         await channel.close()
         await server.stop(grace=None)
+
+
+@pytest.mark.asyncio
+async def test_worker_recovers_each_missing_feedback_target_once() -> None:
+    first = "TARGET\nseed-first@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\nepisode-first"
+    second = "TARGET\nseed-second@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\nepisode-second"
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text=(
+            "ELIGIBLE_DISPOSITION seed-first@1\nAPPLICATION RELATION\n"
+            "TEXT Ask first.\nFEEDBACK_EPISODE episode-first\n\n"
+            "ELIGIBLE_DISPOSITION seed-second@1\nAPPLICATION RELATION\n"
+            "TEXT Give one next step.\nFEEDBACK_EPISODE episode-second"
+        ),
+        allowed_target_refs=["seed-first@1", "seed-second@1"],
+        allowed_basis_refs=["episode-first", "episode-second"],
+    )
+    model = SequenceTextModel([first, second])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == first + "\n" + second
+    assert response.tagged_text.count("seed-first@1") == 1
+    assert len(model.calls) == 2
+    offered = model.calls[1].split("ALLOWED_TARGETS_BEGIN\n", 1)[1].split("ALLOWED_TARGETS_END", 1)[0]
+    assert "seed-second@1" in offered
+    assert "seed-first@1" not in offered
+
+
+@pytest.mark.asyncio
+async def test_worker_preserves_existing_direct_adapt_when_feedback_is_also_eligible() -> None:
+    adaptation = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\nADAPT\nWhen the user is overwhelmed, hear them out before advice.\nBASIS\nepisode-direct"
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text=(
+            "ELIGIBLE_ADAPTATION seed-current@1\nAPPLICATION RELATION\n"
+            "TEXT Give advice first.\nDIRECT_EPISODE episode-direct\n\n"
+            "ELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\n"
+            "TEXT Give advice first.\nFEEDBACK_EPISODE episode-feedback"
+        ),
+        allowed_target_refs=["seed-current@1"],
+        allowed_basis_refs=["episode-direct", "episode-feedback"],
+    )
+    model = SequenceTextModel([adaptation, "NO_CHANGE"])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == adaptation
+    assert len(model.calls) == 1
+
+
+def test_worker_prompt_offers_only_existing_adaptation() -> None:
+    prompt = build_model_input(window_text="window", allowed_target_refs=["NEW_DISPOSITION", "seed-current@1"], allowed_basis_refs=["episode-current"])
+    assert "NEW_DISPOSITION ADAPT:" not in prompt
+    assert "Otherwise use NEW_DISPOSITION ADAPT" not in prompt
+    assert "NEW_DISPOSITION ADAPT is valid" not in prompt
+    assert "ADAPT only an exact existing ELIGIBLE_ADAPTATION target" in prompt
+
+
+@pytest.mark.asyncio
+async def test_worker_feedback_in_mixed_primary_keeps_fact_and_recovers_only_missing() -> None:
+    fact = "TARGET\nNEW_RECOLLECTION\nAPPLICATION\nOTHER\nCHANGE\nTEXT\nThe user lives in Shanghai.\nBASIS\nepisode-current"
+    enacted = "TARGET\nseed-first@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\nepisode-first\noutcome-first"
+    recovered = "TARGET\nseed-second@1\nAPPLICATION\nRELATION\nCHANGE\nINHIBIT\nBASIS\noutcome-second"
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text=(
+            "ELIGIBLE_DISPOSITION seed-first@1\nAPPLICATION RELATION\n"
+            "TEXT Ask first.\nFEEDBACK_EPISODE episode-first\nFEEDBACK_OUTCOME outcome-first\nOUTCOME_EPISODE episode-first\n\n"
+            "ELIGIBLE_DISPOSITION seed-second@1\nAPPLICATION RELATION\n"
+            "TEXT Give advice.\nFEEDBACK_EPISODE episode-second\nFEEDBACK_OUTCOME outcome-second\nOUTCOME_EPISODE episode-second"
+        ),
+        allowed_target_refs=["NEW_RECOLLECTION", "seed-first@1", "seed-second@1"],
+        allowed_basis_refs=["episode-current", "episode-first", "outcome-first", "episode-second", "outcome-second"],
+    )
+    model = SequenceTextModel([fact + "\n" + enacted, recovered])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == (
+        fact + "\n" + enacted.removesuffix("\noutcome-first") + "\n"
+        + recovered.replace("BASIS\noutcome-second", "BASIS\nepisode-second\noutcome-second")
+    )
+    assert len(model.calls) == 2
+    offered = model.calls[1].split("ALLOWED_TARGETS_BEGIN\n", 1)[1].split("ALLOWED_TARGETS_END", 1)[0]
+    assert "seed-first@1" not in offered
+    assert "seed-second@1" in offered
+
+
+@pytest.mark.asyncio
+async def test_worker_feedback_recovery_cannot_repeat_an_already_processed_target() -> None:
+    first = "TARGET\nseed-first@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\nepisode-first"
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text="ELIGIBLE_DISPOSITION seed-first@1\nFEEDBACK_EPISODE episode-first\nELIGIBLE_DISPOSITION seed-second@1\nFEEDBACK_EPISODE episode-second",
+        allowed_target_refs=["seed-first@1", "seed-second@1"],
+        allowed_basis_refs=["episode-first", "episode-second"],
+    )
+    model = SequenceTextModel([first, first])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == first
+    assert len(model.calls) == 2

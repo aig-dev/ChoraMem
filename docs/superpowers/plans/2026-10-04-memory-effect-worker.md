@@ -12,10 +12,10 @@
 
 **Files:** `worker/python/src/memory_core_worker/service.py`, `worker/python/tests/test_service.py`, `AGENTS.md`.
 
-- [ ] Start Task 1; reproduce missing second-target feedback and lost existing ADAPT with RED tests. Add a prompt contract test that no new ADAPT operation is offered.
-- [ ] Normalize feedback per complete target block while retaining ordinary existing ADAPT for Core validation. Recover only missing offered feedback targets in one call; never duplicate a completed target, infer an identity/link, or add qualification.
-- [ ] Teach only existing eligible ADAPT with an explicit lasting direct correction. Keep the new-ADAPT rejection defense and formation/feedback boundaries.
-- [ ] Run focused tests then the complete Worker suite, record RED/GREEN and commit.
+- [x] Start Task 1; reproduce missing second-target feedback and lost existing ADAPT with RED tests. Add a prompt contract test that no new ADAPT operation is offered.
+- [x] Normalize feedback per complete target block while retaining ordinary existing ADAPT for Core validation. Recover only missing offered feedback targets in one call; never duplicate a completed target, infer an identity/link, or add qualification.
+- [x] Teach only existing eligible ADAPT with an explicit lasting direct correction. Keep the new-ADAPT rejection defense and formation/feedback boundaries.
+- [x] Run focused tests then the complete Worker suite, record RED/GREEN and commit.
 
 ## Task 2: Residual declarative facts
 
@@ -46,4 +46,4 @@ Task 1 preserves direct correction and covers every eligible feedback target wit
 
 ## Execution evidence
 
-Pending.
+Task 1: three RED regressions proved missing second-target feedback, erased existing ADAPT, and an impossible new-ADAPT prompt contract. GREEN normalizes feedback per target block, preserves the direct existing correction, recovers only missing eligible targets, and rejects a recovery attempt to repeat a completed target. Mixed primary Recollection/feedback keeps the fact and binds feedback only to offered causal refs. Full Worker suite:142 passed,11 optional live cases skipped; no external-provider effect claim. Core keeps exact Target/Basis/identity/commit qualification.
