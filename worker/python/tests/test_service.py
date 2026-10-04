@@ -568,6 +568,7 @@ async def test_paired_formation_replaces_only_primary_inferred_new_seed() -> Non
         [
             primary,
             "When the user is overloaded, the Agent asks one prioritizing question first.",
+            "NO_MEMORY",
         ]
     )
 
@@ -577,7 +578,7 @@ async def test_paired_formation_replaces_only_primary_inferred_new_seed() -> Non
     assert "TARGET\nrecollection-existing@1" in response.tagged_text
     assert "When the user is overloaded" in response.tagged_text
     assert response.tagged_text.count("TARGET\nNEW_DISPOSITION") == 1
-    assert len(model.calls) == 2
+    assert len(model.calls) == 3
 
 
 @pytest.mark.asyncio
@@ -671,35 +672,48 @@ async def test_single_episode_new_direct_adaptation_is_a_noop() -> None:
 
 
 @pytest.mark.asyncio
-async def test_primary_recollection_change_suppresses_plain_text_fallback() -> None:
+async def test_primary_recollection_keeps_residual_fact_and_filters_exact_duplicate() -> None:
     primary = (
         "TARGET\nNEW_RECOLLECTION\nAPPLICATION\nOTHER\nCHANGE\nTEXT\n"
         "用户长期生活在上海。\nBASIS\nepisode-current"
     )
-    model = SequenceTextModel([primary])
-
-    response = await InferenceService(model).ProcessConsolidationWindow(
-        _typed_recollection_request(), None
-    )
-
-    assert response.tagged_text == primary
-    assert len(model.calls) == 1
+    model = SequenceTextModel([primary, "用户长期生活在上海。\n用户喜欢周末徒步。"])
+    response = await InferenceService(model).ProcessConsolidationWindow(_typed_recollection_request(), None)
+    assert response.tagged_text.startswith(primary + "\n")
+    assert response.tagged_text.count("用户长期生活在上海。") == 1
+    assert response.tagged_text.count("用户喜欢周末徒步。") == 1
+    assert len(model.calls) == 2
+    assert "> 用户长期生活在上海。" in model.calls[1]
 
 
 @pytest.mark.asyncio
-async def test_primary_existing_recollection_revision_suppresses_plain_text_fallback() -> None:
+async def test_primary_existing_revision_replaces_old_coverage_and_keeps_residual_fact() -> None:
     primary = (
         "TARGET\nrecollection-existing@1\nAPPLICATION\nOTHER\nCHANGE\nTEXT\n"
         "用户现在长期住在北京。\nBASIS\nepisode-current"
     )
-    model = SequenceTextModel([primary])
+    request = _typed_recollection_request()
+    request.evidence.episodes[0].sources[0].text = "我现在长期住在北京，也喜欢周末徒步。"
+    model = SequenceTextModel([primary, "用户现在长期住在北京。\n用户喜欢周末徒步。"])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text.startswith(primary + "\n")
+    assert response.tagged_text.count("用户现在长期住在北京。") == 1
+    assert "用户喜欢周末徒步。" in response.tagged_text
+    assert len(model.calls) == 2
+    coverage = model.calls[1].split("EXISTING_RECOLLECTIONS_BEGIN\n", 1)[1].split("EXISTING_RECOLLECTIONS_END", 1)[0]
+    assert "> 用户现在长期住在北京。" in coverage
+    assert "用户已经长期住在上海。" not in coverage
 
-    response = await InferenceService(model).ProcessConsolidationWindow(
-        _typed_recollection_request(), None
-    )
 
-    assert response.tagged_text == primary
-    assert len(model.calls) == 1
+@pytest.mark.asyncio
+async def test_primary_keep_does_not_suppress_an_independent_current_fact() -> None:
+    primary = "TARGET\nrecollection-existing@1\nAPPLICATION\nOTHER\nCHANGE\nKEEP\nBASIS\nepisode-current"
+    model = SequenceTextModel([primary, "用户已经长期住在上海。\n用户喜欢周末徒步。"])
+    response = await InferenceService(model).ProcessConsolidationWindow(_typed_recollection_request(), None)
+    assert response.tagged_text.startswith(primary + "\n")
+    assert "用户喜欢周末徒步。" in response.tagged_text
+    assert "用户已经长期住在上海。" not in response.tagged_text
+    assert len(model.calls) == 2
 
 
 @pytest.mark.asyncio
@@ -1294,3 +1308,45 @@ async def test_worker_feedback_recovery_cannot_repeat_an_already_processed_targe
     response = await InferenceService(model).ProcessConsolidationWindow(request, None)
     assert response.tagged_text == first
     assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_worker_all_four_lanes_keep_residual_fact_with_fixed_call_ceiling() -> None:
+    request = _paired_formation_request()
+    request.allowed_target_refs.append("seed-feedback@1")
+    request.window_text += "\nELIGIBLE_DISPOSITION seed-feedback@1\nAPPLICATION RELATION\nTEXT Ask one priority.\nFEEDBACK_EPISODE episode-current"
+    request.evidence.episodes[0].sources[0].text += " I own a cat named Miso."
+    primary = "TARGET\nNEW_RECOLLECTION\nAPPLICATION\nOTHER\nCHANGE\nTEXT\nThe user lives in Shanghai.\nBASIS\nepisode-current"
+    feedback = "TARGET\nseed-feedback@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\nepisode-current"
+    model = SequenceTextModel([
+        primary,
+        "When the user is overloaded, the Agent asks one prioritizing question first.",
+        feedback,
+        "The user lives in Shanghai.\nThe user owns a cat named Miso.",
+    ])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert len(model.calls) == 4
+    assert response.tagged_text.count("The user lives in Shanghai.") == 1
+    assert "The user owns a cat named Miso." in response.tagged_text
+    assert "TARGET\nNEW_DISPOSITION" in response.tagged_text
+    assert "TARGET\nseed-feedback@1" in response.tagged_text
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("corruption", ["wrong application", "unoffered basis", "no current basis"])
+async def test_invalid_primary_fact_does_not_gain_duplicate_coverage(corruption: str) -> None:
+    request = _typed_recollection_request()
+    primary = "TARGET\nrecollection-existing@1\nAPPLICATION\nOTHER\nCHANGE\nTEXT\n用户喜欢周末徒步。\nBASIS\nepisode-current"
+    if corruption == "wrong application":
+        primary = primary.replace("APPLICATION\nOTHER", "APPLICATION\nSELF")
+    elif corruption == "unoffered basis":
+        primary = primary.replace("BASIS\nepisode-current", "BASIS\nepisode-unoffered")
+    else:
+        primary = primary.replace("BASIS\nepisode-current", "BASIS\nepisode-related")
+    model = SequenceTextModel([primary, "用户喜欢周末徒步。"])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert len(model.calls) == 2
+    coverage = model.calls[1].split("EXISTING_RECOLLECTIONS_BEGIN\n", 1)[1].split("EXISTING_RECOLLECTIONS_END", 1)[0]
+    assert "用户喜欢周末徒步。" not in coverage
+    assert "> 用户已经长期住在上海。" in coverage
+    assert response.tagged_text.count("用户喜欢周末徒步。") == 2  # Core rejects the invalid primary batch; it does not become coverage authority.

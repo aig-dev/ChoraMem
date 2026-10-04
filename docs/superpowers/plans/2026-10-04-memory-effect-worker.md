@@ -21,10 +21,10 @@
 
 **Files:** `worker/python/src/memory_core_worker/service.py`, `worker/python/src/memory_core_worker/source_materials.py` only if required, `worker/python/tests/test_service.py`.
 
-- [ ] Reproduce a primary KEEP/TEXT/new fact swallowing another independent current-source fact.
-- [ ] Offer existing Recollections plus valid primary Recollection results as quoted coverage to the same single fact call. A primary revision supersedes its old coverage. Preserve chronological source, attribution, temporary scope and withdrawal rules; factual extraction cannot prescribe Agent behavior.
-- [ ] Filter exact duplicate bodies and cap the existing bounded list/output; ask the model to exclude already-covered meaning. Invalid primary output stays under Core qualification; no invented Target/Basis or repair of identity.
-- [ ] Verify new/revised/KEEP coverage, duplicates, temporal/temporary/withdrawn/quoted source safeguards and the four-call ceiling. Run Worker suite and commit.
+- [x] Reproduce a primary KEEP/TEXT/new fact swallowing another independent current-source fact.
+- [x] Offer existing Recollections plus valid primary Recollection results as quoted coverage to the same single fact call. A primary revision supersedes its old coverage. Preserve chronological source, attribution, temporary scope and withdrawal rules; factual extraction cannot prescribe Agent behavior.
+- [x] Filter exact duplicate bodies and cap the existing bounded list/output; ask the model to exclude already-covered meaning. Invalid primary output stays under Core qualification; no invented Target/Basis or repair of identity.
+- [x] Verify new/revised/KEEP coverage, duplicates, temporal/temporary/withdrawn/quoted source safeguards and the four-call ceiling. Run Worker suite and commit.
 
 ## Task 3: Safe operational diagnostics
 
@@ -47,3 +47,5 @@ Task 1 preserves direct correction and covers every eligible feedback target wit
 ## Execution evidence
 
 Task 1: three RED regressions proved missing second-target feedback, erased existing ADAPT, and an impossible new-ADAPT prompt contract. GREEN normalizes feedback per target block, preserves the direct existing correction, recovers only missing eligible targets, and rejects a recovery attempt to repeat a completed target. Mixed primary Recollection/feedback keeps the fact and binds feedback only to offered causal refs. Full Worker suite:142 passed,11 optional live cases skipped; no external-provider effect claim. Core keeps exact Target/Basis/identity/commit qualification.
+
+Task 2: three RED cases proved new/KEEP/revised Recollection swallowing an independent fact. GREEN always considers typed current material when NEW_RECOLLECTION is allowed; valid primary results provide quoted transient duplicate coverage and a revision replaces only its prior coverage. Exact duplicates are filtered before binding. Application/Target/current Episode Basis controls prevent invalid primary blocks from becoming coverage. Four-lane regression makes exactly four calls and retains an independent residual fact; formation KEEP fixture now returns NO_MEMORY from the residual call. Full Worker suite:147 passed,11 optional live cases skipped. Chronological correction/withdrawal/temporary/source attribution rules remain in the fact prompt and typed-material validator; semantic faithfulness/paraphrase dedup still need the full goal's live held-out checks.
