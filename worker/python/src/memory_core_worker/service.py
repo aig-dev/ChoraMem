@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Iterable
 
 from .disposition_materials import (
@@ -9,6 +10,14 @@ from .disposition_materials import (
 from .model import TextModel
 from .source_materials import RecollectionMaterial, recollection_materials
 from .v1 import inference_pb2, inference_pb2_grpc
+
+
+_LOGGER = logging.getLogger(__name__)
+
+
+def _diagnostic(lane: str, status: str, count: int = 0) -> None:
+    # Only call-site constants and numeric counts cross this diagnostic seam.
+    _LOGGER.info("memory_worker lane=%s status=%s count=%d", lane, status, count)
 
 
 _RULES = """You are Memory Core's single background consolidation Worker.
@@ -215,11 +224,13 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
             allowed_basis_refs=request.allowed_basis_refs,
         )
         if len(model_input.encode("utf-8")) > self._max_model_input_bytes:
+            _diagnostic("primary", "input_budget")
             return inference_pb2.TaggedTextResponse(tagged_text="")
-        tagged_text = await self._model.complete(model_input)
+        tagged_text = await self._complete(model_input, "primary")
         if not isinstance(tagged_text, str):
             raise TypeError("TextModel.complete() must return str")
-        if tagged_text.strip() == NO_CHANGE_TOKEN:
+        if not tagged_text.strip() or tagged_text.strip() == NO_CHANGE_TOKEN:
+            _diagnostic("primary", "no_change")
             tagged_text = ""
         tagged_text = _split_copied_inline_application(
             tagged_text, request.allowed_target_refs
@@ -228,12 +239,16 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
             tagged_text, request.allowed_target_refs
         )
         if len(tagged_text.encode("utf-8")) > MAX_TAGGED_TEXT_BYTES:
+            _diagnostic("primary", "output_budget")
             tagged_text = ""
         tagged_text = _deduplicate_basis(tagged_text, request.allowed_basis_refs)
         # A chat episode is evidence, not authority to create a Seed in one
         # step. Explicit product settings belong in the Soul/settings input;
         # background chat can still correct an existing Seed with ADAPT.
+        before_adapt_filter = tagged_text
         tagged_text = _remove_new_disposition_changes(tagged_text, {"ADAPT"})
+        if tagged_text != before_adapt_filter:
+            _diagnostic("primary", "rejected_qualification")
 
         formation_anchor = _has_disposition_formation_anchor(request)
         formation_material = disposition_formation_material(request)
@@ -241,14 +256,24 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
         if formation_material is not None:
             formation_input = build_disposition_formation_input(formation_material)
             if len(formation_input.encode("utf-8")) > self._max_model_input_bytes:
+                _diagnostic("formation", "input_budget")
                 formation_material = None
         if formation_anchor:
             tagged_text = _remove_new_disposition_changes(tagged_text, {"TEXT"})
             if formation_material is not None:
-                body = await self._model.complete(formation_input)
+                body = await self._complete(formation_input, "formation")
                 if not isinstance(body, str):
                     raise TypeError("TextModel.complete() must return str")
-                formation = formation_material.bind_disposition(body)
+                try:
+                    formation = formation_material.bind_disposition(body)
+                except (TypeError, ValueError):
+                    status = (
+                        "output_budget" if len(body.encode("utf-8")) > 4096
+                        else "rejected_format"
+                    )
+                    _diagnostic("formation", status)
+                    raise
+                _diagnostic("formation", "produced" if formation else "no_change")
                 tagged_text = _append_tagged_text(tagged_text, formation)
 
         feedback_targets = _eligible_feedback_targets(
@@ -263,7 +288,23 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
         tagged_text = await self._recover_missing_feedback(request, tagged_text)
         if _should_process_recollection(request):
             tagged_text = await self._append_plain_recollection(request, tagged_text)
+        else:
+            _diagnostic("recollection", "no_eligible_material")
         return inference_pb2.TaggedTextResponse(tagged_text=tagged_text)
+
+    async def _complete(self, model_input: str, lane: str) -> str:
+        _diagnostic(lane, "requested")
+        try:
+            response = await self._model.complete(model_input)
+        except Exception:
+            _diagnostic(lane, "model_failure")
+            # gRPC logs unexpected exceptions with their messages/tracebacks.
+            # Preserve failure/retry behavior while suppressing provider data.
+            raise RuntimeError("memory Worker model failed; request may be retried") from None
+        if not isinstance(response, str):
+            _diagnostic(lane, "rejected_format")
+            raise TypeError("TextModel.complete() must return str")
+        return response
 
     async def _recover_missing_feedback(
         self,
@@ -278,29 +319,42 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
             if not _contains_target_block(primary_text, (target,))
         )
         if not targets:
+            _diagnostic("feedback", "no_eligible_material")
             return primary_text
         basis_refs = _eligible_feedback_basis_refs(
             request.window_text, request.allowed_basis_refs
         )
         if not basis_refs:
+            _diagnostic("feedback", "no_eligible_material")
             return primary_text
-        feedback = await self._model.complete(build_feedback_input(
+        feedback_input = build_feedback_input(
             window_text=request.window_text,
             target_refs=targets,
             allowed_basis_refs=basis_refs,
-        ))
+        )
+        if len(feedback_input.encode("utf-8")) > self._max_model_input_bytes:
+            _diagnostic("feedback", "input_budget")
+            return primary_text
+        feedback = await self._complete(feedback_input, "feedback")
         if not isinstance(feedback, str):
             raise TypeError("TextModel.complete() must return str")
+        if len(feedback.encode("utf-8")) > MAX_TAGGED_TEXT_BYTES:
+            _diagnostic("feedback", "output_budget")
+            return primary_text
         if feedback.strip() == NO_CHANGE_TOKEN:
+            _diagnostic("feedback", "no_change")
             return primary_text
         feedback = _normalize_feedback_output(
             feedback, target_refs=targets, window_text=request.window_text
         )
         if not feedback:
+            _diagnostic("feedback", "rejected_format")
             return primary_text
         combined = feedback if not primary_text else primary_text.rstrip() + "\n" + feedback
         if len(combined.encode("utf-8")) > MAX_TAGGED_TEXT_BYTES:
+            _diagnostic("feedback", "output_budget")
             return primary_text
+        _diagnostic("feedback", "produced", len(targets))
         return combined
 
     async def _append_plain_recollection(
@@ -311,15 +365,18 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
         try:
             materials = recollection_materials(request)
         except (TypeError, ValueError):
+            _diagnostic("recollection", "rejected_material")
             return primary_text
         if not materials:
+            _diagnostic("recollection", "no_eligible_material")
             return primary_text
 
         coverage = _recollection_coverage(request, primary_text)
         model_input = build_recollection_input(materials, covered_recollections=coverage)
         if len(model_input.encode("utf-8")) > self._max_model_input_bytes:
+            _diagnostic("recollection", "input_budget")
             return primary_text
-        body = await self._model.complete(model_input)
+        body = await self._complete(model_input, "recollection")
         if not isinstance(body, str):
             raise TypeError("TextModel.complete() must return str")
         try:
@@ -327,14 +384,22 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
                 materials[0], body, covered_recollections=coverage
             )
         except (TypeError, ValueError):
+            status = (
+                "output_budget" if any(len(line.encode("utf-8")) > 4096 for line in body.splitlines())
+                else "rejected_format"
+            )
+            _diagnostic("recollection", status)
             return primary_text
         if not recollections:
+            _diagnostic("recollection", "no_change")
             return primary_text
 
         appended = "\n".join(recollections)
         combined = appended if not primary_text else primary_text.rstrip() + "\n" + appended
         if len(combined.encode("utf-8")) > MAX_TAGGED_TEXT_BYTES:
+            _diagnostic("recollection", "output_budget")
             return primary_text
+        _diagnostic("recollection", "produced", len(recollections))
         return combined
 
 
@@ -362,6 +427,7 @@ def _bind_plain_recollections(
         if line in seen:
             continue
         if len(result) == MAX_PLAIN_RECOLLECTIONS:
+            _diagnostic("recollection", "output_budget", len(result))
             break
         seen.add(line)
         result.append(material.bind_recollection(line))
@@ -776,6 +842,8 @@ def _normalize_primary_feedback(
         changed = True
         if normalized:
             kept.append(normalized)
+        else:
+            _diagnostic("feedback", "rejected_format")
     return "\n".join(kept) if changed else text
 
 

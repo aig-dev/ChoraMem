@@ -674,13 +674,18 @@ func RunAdaptiveSeeds(t *testing.T, factory IndexedFactory) {
 					nestedWindow = consolidation.Window{JobRef: "stale-inner", EpisodeRefs: []string{feedbackEpisode}}
 					nestedWorker = textWorker(taggedChange(target, consolidation.ApplicationRelation, consolidation.ChangeReenact, "", feedbackEpisode))
 				}
-				_, err = s.store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: "stale-outer", EpisodeRefs: []string{second}}, callbackWorker(func(consolidation.WorkerRequest) (string, error) {
-					_, nestedErr := s.store.ConsolidateWindow(testContext(t), nestedWindow, nestedWorker)
-					if nestedErr != nil {
-						return "", nestedErr
-					}
-					return adaptChange(target, "先听完再简洁建议", second), nil
-				}))
+				output := captureConsolidationLogs(func() {
+					_, err = s.store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: "stale-outer", EpisodeRefs: []string{second}}, callbackWorker(func(consolidation.WorkerRequest) (string, error) {
+						_, nestedErr := s.store.ConsolidateWindow(testContext(t), nestedWindow, nestedWorker)
+						if nestedErr != nil {
+							return "", nestedErr
+						}
+						return adaptChange(target, "先听完再简洁建议", second), nil
+					}))
+				})
+				if !strings.Contains(output, "status=stale_snapshot") {
+					t.Fatalf("missing stale diagnostic: %s", output)
+				}
 				if !errors.Is(err, consolidation.ErrWindowStale) {
 					t.Fatalf("concurrent basis append=%v did not stale snapshot: %v", basisAppend, err)
 				}

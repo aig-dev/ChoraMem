@@ -28,11 +28,11 @@
 
 ## Task 3: Safe operational diagnostics
 
-**Files:** `worker/python/src/memory_core_worker/service.py`; equivalent `internal/storage/mysql/consolidation.go` and `internal/storage/postgres/consolidation.go`; corresponding tests.
+**Files:** `worker/python/src/memory_core_worker/service.py`; equivalent `internal/storage/mysql/consolidation.go` and `internal/storage/postgres/consolidation.go`; corresponding tests; `worker/python/src/memory_core_worker/server.py` and `cmd/memoryd/main.go` for the existing logging sinks.
 
-- [ ] RED tests distinguish no_change, no_eligible_material, rejected_format, input/output_budget, rejected_qualification and stale_snapshot using safe existing logs.
-- [ ] Emit static lane/status plus bounded counts; never emit source/model text, credentials, or model rationales. Keep failed Worker retry and safe no-op commit semantics unchanged; existing scheduler OnError continues to expose stale retry.
-- [ ] Exercise controlled Worker and shared real-database contracts for both Stores. Run relevant tests and commit.
+- [x] RED tests distinguish no_change, no_eligible_material, rejected_format, input/output_budget, rejected_qualification and stale_snapshot using safe existing logs.
+- [x] Emit static lane/status plus bounded counts; never emit source/model text, credentials, or model rationales. Keep failed Worker retry and safe no-op commit semantics unchanged; existing scheduler OnError continues to expose stale retry.
+- [x] Exercise controlled Worker and shared real-database contracts for both Stores. Run relevant tests and commit.
 
 ## Task 4: Contract evidence and independent review
 
@@ -49,3 +49,5 @@ Task 1 preserves direct correction and covers every eligible feedback target wit
 Task 1: three RED regressions proved missing second-target feedback, erased existing ADAPT, and an impossible new-ADAPT prompt contract. GREEN normalizes feedback per target block, preserves the direct existing correction, recovers only missing eligible targets, and rejects a recovery attempt to repeat a completed target. Mixed primary Recollection/feedback keeps the fact and binds feedback only to offered causal refs. Full Worker suite:142 passed,11 optional live cases skipped; no external-provider effect claim. Core keeps exact Target/Basis/identity/commit qualification.
 
 Task 2: three RED cases proved new/KEEP/revised Recollection swallowing an independent fact. GREEN always considers typed current material when NEW_RECOLLECTION is allowed; valid primary results provide quoted transient duplicate coverage and a revision replaces only its prior coverage. Exact duplicates are filtered before binding. Application/Target/current Episode Basis controls prevent invalid primary blocks from becoming coverage. Four-lane regression makes exactly four calls and retains an independent residual fact; formation KEEP fixture now returns NO_MEMORY from the residual call. Full Worker suite:147 passed,11 optional live cases skipped. Chronological correction/withdrawal/temporary/source attribution rules remain in the fact prompt and typed-material validator; semantic faithfulness/paraphrase dedup still need the full goal's live held-out checks.
+
+Task 3: behavioral RED proved absent safe diagnostic classes in Worker and real MySQL contracts, an oversized raw feedback response being normalized into an accepted change, and the runtime retry sink echoing a private error sentinel. GREEN distinguishes normal no-change, no eligible material, format/qualification rejection, input/output budgets, Worker failure and stale snapshots using fixed strings and counts only. Raw feedback is bounded before normalization. Model failure remains a failed retryable RPC with a static message; Core keeps original errors for retry while the runtime log class omits their text. Worker155 passed,11 optional live skipped; uncached full Core Go passed; PostgreSQL and MySQL complete migrated Store suites plus running-memoryd public RPC tests passed. Runtime retry-sink unit/full-Core verification was run after those DB scripts; the Task4 gate will exercise the final runtime revision. No schema or protocol change.

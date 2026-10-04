@@ -8,6 +8,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"log"
 	"sort"
 	"strings"
 	"unicode"
@@ -144,15 +145,29 @@ func (store *Store) ConsolidateWindow(ctx context.Context, window consolidation.
 	}
 
 	taggedText := ""
-	if consolidation.FitsWorkerRequestLimit(workerRequest) && !consolidation.ConstitutionRefCollision(currentConstitution(episodes), workerRequest) {
+	workerInvoked := false
+	if !consolidation.FitsWorkerRequestLimit(workerRequest) {
+		log.Printf("memory_consolidation status=input_budget episodes=%d", len(episodes))
+	} else if consolidation.ConstitutionRefCollision(currentConstitution(episodes), workerRequest) {
+		log.Printf("memory_consolidation status=rejected_qualification episodes=%d", len(episodes))
+	} else {
+		workerInvoked = true
 		taggedText, err = worker.ProcessConsolidationWindow(ctx, workerRequest)
 		if err != nil {
+			log.Printf("memory_consolidation status=worker_failure episodes=%d", len(episodes))
 			return consolidation.Receipt{}, fmt.Errorf("process consolidation window: %w", err)
 		}
 	}
 	changes, parseErr := consolidation.ParseTaggedText(taggedText)
 	if parseErr != nil {
+		status := "rejected_format"
+		if len(taggedText) > consolidation.MaxTaggedTextBytes {
+			status = "output_budget"
+		}
+		log.Printf("memory_consolidation status=%s episodes=%d", status, len(episodes))
 		changes = nil
+	} else if len(changes) == 0 && workerInvoked {
+		log.Printf("memory_consolidation status=no_change episodes=%d", len(episodes))
 	}
 
 	tx, err := store.pool.BeginTx(ctx, txOptions{})
@@ -222,6 +237,7 @@ func (store *Store) ConsolidateWindow(ctx context.Context, window consolidation.
 	if hashFeedbackState(committedTargets) != stateHash ||
 		hashRecollectionState(committedActiveRecollections) != recollectionStateHash ||
 		hashConsolidationWorkerRequest(committedWorkerRequest) != workerRequestHash {
+		log.Printf("memory_consolidation status=stale_snapshot episodes=%d", len(episodes))
 		return consolidation.Receipt{}, consolidation.ErrWindowStale
 	}
 
@@ -244,6 +260,7 @@ func (store *Store) ConsolidateWindow(ctx context.Context, window consolidation.
 		changes, owner, episodeByRef, currentEpisodeRefs, recollectionByVersion,
 		committedTargets, committedOutcomes, committedWorkerRequest.Evidence,
 	) {
+		log.Printf("memory_consolidation status=rejected_qualification changes=%d", len(changes))
 		changes = nil
 	}
 	for _, change := range changes {

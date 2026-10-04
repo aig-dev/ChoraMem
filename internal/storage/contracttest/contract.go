@@ -3,9 +3,11 @@
 package contracttest
 
 import (
+	"bytes"
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"reflect"
 	"strings"
 	"sync"
@@ -34,6 +36,47 @@ type IndexedFactory func(*testing.T, memoryindex.Index) storage.CoreStore
 // Run executes the same observable causal contract for every adapter.
 func Run(t *testing.T, factory Factory) {
 	t.Helper()
+
+	t.Run("consolidation_safe_diagnostics_distinguish_noop_rejection_and_budget", func(t *testing.T) {
+		store := migratedStore(t, factory)
+		scenario := newScenario(store)
+		secret := "private-source-and-credential-sentinel"
+		episode, _, _ := scenario.materializeEpisode(t, "diagnostic", secret)
+		for _, test := range []struct{ name, text, status string }{
+			{name: "none", text: "", status: "no_change"},
+			{name: "format", text: secret, status: "rejected_format"},
+			{name: "output", text: strings.Repeat(secret, consolidation.MaxTaggedTextBytes), status: "output_budget"},
+			{name: "qualification", text: taggedChange("unoffered@1", consolidation.ApplicationRelation, consolidation.ChangeText, secret, episode), status: "rejected_qualification"},
+		} {
+			t.Run(test.name, func(t *testing.T) {
+				output := captureConsolidationLogs(func() {
+					receipt, err := store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: "diagnostic-" + test.name, EpisodeRefs: []string{episode}}, textWorker(test.text))
+					if err != nil || len(receipt.RecollectionVersionRefs) != 0 || len(receipt.DispositionVersionRefs) != 0 {
+						t.Fatalf("diagnostic no-op changed effects: (%#v, %v)", receipt, err)
+					}
+				})
+				if !strings.Contains(output, "status="+test.status) || strings.Contains(output, secret) {
+					t.Fatalf("missing or unsafe %s diagnostic: %s", test.status, output)
+				}
+			})
+		}
+		large := strings.Repeat("x", 64*1024)
+		var episodes []string
+		for n := 0; n < 14; n++ {
+			ref, _, _ := scenario.materializeEpisodeWithTexts(t, fmt.Sprintf("diagnostic-large-%d", n), large, large, scenario.scope)
+			episodes = append(episodes, ref)
+		}
+		calls := 0
+		output := captureConsolidationLogs(func() {
+			receipt, err := store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: "diagnostic-budget", EpisodeRefs: episodes}, callbackWorker(func(consolidation.WorkerRequest) (string, error) { calls++; return "", nil }))
+			if err != nil || calls != 0 || len(receipt.RecollectionVersionRefs) != 0 || len(receipt.DispositionVersionRefs) != 0 {
+				t.Fatalf("budget diagnostic changed safe no-op: (%#v, %v), calls %d", receipt, err, calls)
+			}
+		})
+		if !strings.Contains(output, "status=input_budget") || strings.Contains(output, large[:64]) {
+			t.Fatalf("missing or unsafe budget diagnostic: %s", output)
+		}
+	})
 
 	t.Run("migration_is_idempotent", func(t *testing.T) {
 		store := migratedStore(t, factory)
@@ -916,4 +959,15 @@ func taggedChange(target, application, operation, text string, basis ...string) 
 	lines := []string{"TARGET", target, "APPLICATION", application, "CHANGE", change, "BASIS"}
 	lines = append(lines, basis...)
 	return strings.Join(lines, "\n")
+}
+
+// Real-store contract cases are sequential; stdout capture never wraps provider
+// text or changes Store behavior, and the previous logger is always restored.
+func captureConsolidationLogs(work func()) string {
+	var output bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&output)
+	defer log.SetOutput(previous)
+	work()
+	return output.String()
 }

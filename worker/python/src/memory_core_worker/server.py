@@ -5,6 +5,7 @@ import asyncio
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 import os
+import logging
 
 import grpc
 
@@ -85,6 +86,7 @@ def parse_settings(
 
 
 def main(argv: Sequence[str] | None = None) -> None:
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s %(message)s")
     settings = parse_settings(argv)
     model = OpenAIResponsesTextModel(
         settings.openai_model,

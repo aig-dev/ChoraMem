@@ -1,10 +1,15 @@
 package main
 
 import (
+	"bytes"
 	"context"
+	"errors"
+	"log"
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/aig-dev/ChoraMem/internal/core/consolidation"
 	"github.com/aig-dev/ChoraMem/internal/transport/auth"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/metadata"
@@ -224,4 +229,18 @@ func setTrustedLoopback(t *testing.T) {
 	t.Setenv("MEMORYD_AUTH_MODE", "trusted_loopback")
 	t.Setenv("MEMORYD_HTTP_ADDR", "127.0.0.1:8080")
 	t.Setenv("MEMORYD_GRPC_ADDR", "127.0.0.1:8081")
+}
+
+func TestMemoryRetryLogDoesNotEchoSourceOrProviderErrorPayload(t *testing.T) {
+	var output bytes.Buffer
+	previous := log.Writer()
+	log.SetOutput(&output)
+	defer log.SetOutput(previous)
+	secret := "private-source-and-credential-sentinel"
+	logMemoryRetry("consolidation", errors.New(secret))
+	logMemoryRetry("projection", errors.New(secret))
+	logMemoryRetry("consolidation", consolidation.ErrWindowStale)
+	if strings.Contains(output.String(), secret) || !strings.Contains(output.String(), "status=stale_snapshot") || !strings.Contains(output.String(), "status=retry_failure") {
+		t.Fatalf("unsafe or unclassified retry log: %s", output.String())
+	}
 }

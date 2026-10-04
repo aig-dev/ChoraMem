@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
+import logging
 
 import grpc
 import pytest
@@ -1209,7 +1210,7 @@ async def test_incomplete_provider_output_fails_rpc_and_same_request_can_be_retr
     request = inference_pb2.ProcessConsolidationWindowRequest(window_text="EPISODE episode-1")
     try:
         stub = inference_pb2_grpc.InferenceWorkerStub(channel)
-        with pytest.raises(grpc.aio.AioRpcError, match="not completed"):
+        with pytest.raises(grpc.aio.AioRpcError, match="request may be retried"):
             await stub.ProcessConsolidationWindow(request)
         response = await stub.ProcessConsolidationWindow(request)
         assert response.tagged_text == ""
@@ -1350,3 +1351,91 @@ async def test_invalid_primary_fact_does_not_gain_duplicate_coverage(corruption:
     assert "用户喜欢周末徒步。" not in coverage
     assert "> 用户已经长期住在上海。" in coverage
     assert response.tagged_text.count("用户喜欢周末徒步。") == 2  # Core rejects the invalid primary batch; it does not become coverage authority.
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("scenario, expected", [
+    ("no change", "no_change"),
+    ("input budget", "input_budget"),
+    ("output budget", "output_budget"),
+    ("fact format", "rejected_format"),
+    ("no user material", "no_eligible_material"),
+])
+async def test_worker_reports_safe_outcome_class_without_source_or_credentials(caplog, scenario, expected) -> None:
+    secret = "private-source-and-credential-sentinel"
+    request = inference_pb2.ProcessConsolidationWindowRequest(window_text=secret, allowed_target_refs=["NEW_RECOLLECTION"])
+    model = SequenceTextModel(["NO_CHANGE"])
+    options = {}
+    if scenario == "input budget":
+        options["max_model_input_bytes"] = 1
+    elif scenario == "output budget":
+        model = SequenceTextModel([secret * MAX_TAGGED_TEXT_BYTES])
+    elif scenario == "fact format":
+        request = _typed_recollection_request()
+        request.evidence.episodes[0].sources[0].text += secret
+        model = SequenceTextModel(["NO_CHANGE", "TARGET"])
+    elif scenario == "no user material":
+        request = _typed_recollection_request()
+        request.evidence.episodes[0].sources[0].actor_kind = "agent"
+    with caplog.at_level(logging.INFO, logger="memory_core_worker.service"):
+        await InferenceService(model, **options).ProcessConsolidationWindow(request, None)
+    assert "status=" + expected in caplog.text
+    assert secret not in caplog.text
+    assert "ALLOWED_TARGET" not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_worker_logs_provider_failure_class_and_keeps_rpc_retryable_without_exception_text(caplog) -> None:
+    secret = "private-source-and-credential-sentinel"
+    class FailedModel:
+        async def complete(self, _: str) -> str:
+            raise RuntimeError(secret)
+    with caplog.at_level(logging.INFO, logger="memory_core_worker.service"):
+        with pytest.raises(RuntimeError, match="request may be retried"):
+            await InferenceService(FailedModel()).ProcessConsolidationWindow(inference_pb2.ProcessConsolidationWindowRequest(window_text=secret), None)
+    assert "status=model_failure" in caplog.text
+    assert secret not in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_oversized_feedback_is_rejected_before_normalization_can_hide_its_budget(caplog) -> None:
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text="ELIGIBLE_DISPOSITION seed-feedback@1\nFEEDBACK_EPISODE episode-feedback",
+        allowed_target_refs=["seed-feedback@1"], allowed_basis_refs=["episode-feedback"],
+    )
+    oversized = "TARGET\nseed-feedback@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\n" + "episode-feedback\n" * MAX_TAGGED_TEXT_BYTES
+    model = SequenceTextModel(["NO_CHANGE", oversized])
+    with caplog.at_level(logging.INFO, logger="memory_core_worker.service"):
+        response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == ""
+    assert "lane=feedback status=output_budget" in caplog.text
+
+
+@pytest.mark.asyncio
+async def test_worker_grpc_failure_keeps_retry_and_never_exposes_provider_text(caplog) -> None:
+    secret = "private-source-and-credential-sentinel"
+    class FailsOnce:
+        def __init__(self): self.calls = 0
+        async def complete(self, _: str) -> str:
+            self.calls += 1
+            if self.calls == 1: raise RuntimeError(secret)
+            return "NO_CHANGE"
+    server = grpc.aio.server()
+    inference_pb2_grpc.add_InferenceWorkerServicer_to_server(InferenceService(FailsOnce()), server)
+    port = server.add_insecure_port("127.0.0.1:0")
+    await server.start()
+    channel = grpc.aio.insecure_channel(f"127.0.0.1:{port}")
+    try:
+        stub = inference_pb2_grpc.InferenceWorkerStub(channel)
+        request = inference_pb2.ProcessConsolidationWindowRequest(window_text=secret)
+        with caplog.at_level(logging.INFO):
+            with pytest.raises(grpc.aio.AioRpcError) as failed:
+                await stub.ProcessConsolidationWindow(request)
+            assert failed.value.code() == grpc.StatusCode.UNKNOWN
+            assert secret not in failed.value.details()
+            assert secret not in caplog.text
+            response = await stub.ProcessConsolidationWindow(request)
+            assert response.tagged_text == ""
+    finally:
+        await channel.close()
+        await server.stop(grace=0)

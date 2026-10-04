@@ -16,6 +16,7 @@ import (
 	inferencev1 "github.com/aig-dev/ChoraMem/gen/memory/inference/v1"
 	memoryv1 "github.com/aig-dev/ChoraMem/gen/memory/v1"
 	"github.com/aig-dev/ChoraMem/gen/memory/v1/memoryv1connect"
+	"github.com/aig-dev/ChoraMem/internal/core/consolidation"
 	"github.com/aig-dev/ChoraMem/internal/inference/grpcworker"
 	"github.com/aig-dev/ChoraMem/internal/scheduler"
 	"github.com/aig-dev/ChoraMem/internal/server"
@@ -85,12 +86,12 @@ func run(ctx context.Context, configuration config) error {
 	worker := grpcworker.New(inferencev1.NewInferenceWorkerClient(inferenceConnection))
 	schedulerConfig := configuration.scheduler
 	schedulerConfig.OnError = func(err error) {
-		log.Printf("automatic consolidation retry: %v", err)
+		logMemoryRetry("consolidation", err)
 	}
 	processor := scheduler.New(store, store, worker, schedulerConfig)
 	projectorConfig := configuration.projector
 	projectorConfig.OnError = func(err error) {
-		log.Printf("MemoryIndex projection retry: %v", err)
+		logMemoryRetry("projection", err)
 	}
 	var projector *memoryindex.Projector
 	if index != nil {
@@ -239,4 +240,19 @@ func authenticatorFromConfig(configuration config) (*auth.Authenticator, error) 
 	default:
 		return nil, errors.New("unknown public Memory auth mode")
 	}
+}
+
+func logMemoryRetry(lane string, err error) {
+	status := "retry_failure"
+	switch {
+	case errors.Is(err, consolidation.ErrWindowStale):
+		status = "stale_snapshot"
+	case errors.Is(err, context.DeadlineExceeded):
+		status = "deadline"
+	case errors.Is(err, context.Canceled):
+		status = "canceled"
+	}
+	// Provider/DB errors can embed source text or credentials. Keep the error
+	// for retry decisions, and expose only a safe class to the log sink.
+	log.Printf("memory_retry lane=%s status=%s", lane, status)
 }
