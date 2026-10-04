@@ -1,0 +1,78 @@
+# ChoraMem common causal effect gate implementation plan
+
+> **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans inline, task-by-task. User already authorized the full five-direction goal; one fresh whole-plan review follows all tasks, no per-task subagent.
+
+**Goal:** close the remaining G3/G5 semantic and common behavior gates with complete source→candidate→selection→render→Delivery→actual AgentAct→external feedback→correction traces, then repair only reproduced causal losses.
+
+**Architecture:** eval consumes existing public Core SDK, production reference Worker, bounded semantic projection, and read-only canonical observations. A trajectory learns once. Four answer alternatives share the exact physical Situation SourceEvent and Session, distinct runs and pre-frozen Contexts; only actually rendered canonical refs enter each Delivery. Oracle is an eval-only injected tendency with separately recorded prompt/hash, no fake canonical ref or Core write authority. No new runtime Memory type, table, protocol, score or classifier.
+
+**Tech Stack:** existing Python eval/SDK/reference Worker/ChatTextModel, Go memoryd, disposable MySQL, Chroma1.5.5/MiniLM, existing tiktoken; existing two-store contracts and Chorai outbox integration for any required repair.
+
+**Spec:** `docs/superpowers/specs/2026-09-30-memory-effect-optimization-goal.md`, especially G3/G5 and common effect requirements. G1/G2/Worker/G4 engineering reviews are complete; their commits and Rulings remain binding context.
+
+## Global Constraints
+
+- Work only in attached `codex/memory-effect-optimizations` worktrees; original workspaces unchanged. Do not push/merge.
+- All canonical writes use existing public ObserveSourceEvent, SelectMemory, RecordMemoryDelivery and ReportOutcome; read-only SQL is diagnostics only. Index is disposable projection, not authority.
+- Core SourceEvent identity is complete scope/ref; actual Chorai messages retain tenant/source SOURCE freeze and cannot change session/body/actor/Constitution. Do not fabricate independent physical sources for alternative answers.
+- Episode quoted evidence, Recollection declarative understanding, Disposition conditional response and external Constitution remain distinct. No model confidence/weights/IDs or durable Proposal.
+- Online Select has zero generative calls; one background RPC has at most four model calls. Freeze input/output hashes, model alias/revision limitation, provider configuration, source/core/Worker hashes, budgets and actual started/completed attempt inventory.
+- Use same configured DeepSeek endpoint/model and existing valid credential as G4; no credentials in artifacts. Provider retries0, completion attempts1, temperature0, thinking disabled. Any budget/timeout deviation is frozen before calls, never silently retried/dropped.
+- PersonaMem and earlier ANCHOR/candidate cohorts stay frozen. New held-out cases/rubrics/Oracle/controls freeze before the first external call; no answer/grader target leaks into base/learned generation.
+- Common total memory budget768 cl100k tokens: foundation≤544, tendency≤192, remaining32 for joining overhead. Foundation is byte-identical in base/learned/Oracle; adding a tendency may not evict or rewrite it. Protocol Episode evidence budget8192 UTF-8 bytes, complete items only. Answer output512 tokens, pairwise judge512, Worker8192. Final prompt memory must be≤768. None uses the same external role/current input but no long-term learned/quoted material.
+- Rendered refs are separated from model text. Delivery is recorded before the actual model request; actual completed model output is the AgentAct text. A selected-but-unrendered Seed has no feedback qualification. Oracle text is explicitly eval material, never a canonical delivered Seed.
+- Outcomes are genuine external evaluator outputs or pre-frozen attributed user statements in this synthetic experiment, never Agent self-approval. Record provenance and scope; do not describe this as real human or natural-distribution benefit.
+- Keep full goal active unless every required semantic/engineering gate and an identifiable Oracle common comparison is complete. Oracle failure is an inconclusive effect gate, not an architectural failure or success.
+
+## Review Focus
+
+- Four answer alternatives to one user message must not become four independent sessions or independent successful experiences.
+- Equal memory budgets must not hide different base Episode/Recollection content, scorer labels, output option positions, fake Oracle refs or ordering/interference effects.
+- Arbitrary active Seed/body, uncompleted provider calls, stale Target/body reviews or a later window may not substitute for the exact selected/delivered/committed trajectory.
+- Topic change, factual confirmation, politeness and silence can accompany enactment but supply no efficacy; direct lasting correction must change only an exact existing Target; different-condition exceptions remain local.
+- Temporal limits, withdrawal, speaker/quotation attribution and paraphrase deduplication must be inspected in actual committed texts; passing mocked output routing is insufficient.
+
+## Task 1: Frozen semantic/lifecycle and held-out behavior contracts
+
+**Files:** Create `eval/cases/memory-effect-causal-v1.json`; create `eval/python/src/memory_core_eval/memory_effect_data.py`; create `eval/python/tests/test_memory_effect_data.py`. Reuse existing DelayedSeedSession/Instance values without changing earlier loaders or cohorts.
+
+**Interfaces:** `load_memory_effect(path)` returns label-free replay cases plus separately held scorer-only semantic expectations, behavior rubrics and Oracle/anti tendency. `memory_effect_input_sha256(case)` hashes role, real source texts, histories and current inputs only. Core ids are Harness-generated from evaluation/trajectory/run, never scorer categories.
+
+- [ ] Freeze eight positive relationship trajectories with three complete source-distinct/session-distinct training experiences each and unseen cross-task/paraphrased probe inputs. Use generic r1–r8 ids; current prompts must not repeat the target/Oracle verbatim. Freeze four negative formation/applicability controls separately, including same-topic/different-condition, conflict, mere factual accuracy and unrelated success.
+- [ ] Freeze G3 feedback scenarios: topic switch, factual confirmation, politeness, no Outcome, local negative same chain, different-condition exception, explicit lasting USER correction of existing Target, explicit trusted late association and missing/wrong association. Bind one physical user event once; source-use roles/actual records may share it without claiming independent evidence.
+- [ ] Freeze G5 semantic scenarios: independent new facts; KEEP plus unrelated fact; revision plus unrelated fact; explicit temporary/date range; withdrawal/correction; quoted/third-party attribution; paraphrase dedup; topic-level forget constraint without the forgotten value. Expectations describe meanings and exact provenance, not prescribed model words or confidence.
+- [ ] RED tests reject identity/source/schema drift, missing/duplicate cases, malformed complete histories, label/Oracle leakage and accidental use of scorer fields in base inputs. Implement minimal loader/hash validation; GREEN all relevant eval tests; commit data/hash before external calls.
+
+## Task 2: Public causal replay, equal four arms and exact trace integrity
+
+**Files:** Create `eval/python/src/memory_core_eval/memory_effect_runner.py`; create `eval/python/tests/test_memory_effect_runner.py`; modify read-only `personamem_live.DatabaseProbe` only to expose existing outcome Basis/status when required; no SQL writes or earlier protocol changes.
+
+**Interfaces:** `prepare_effect_trajectory(instance,memory,settle)` learns once and observes one probe Situation; `run_effect_arms(...)` returns four raw completed answer records plus exact trace. `validate_effect_trace(...)` checks starts/completions, selection/rendered refs, Delivery/AgentAct identities/hashes and canonical origin/version/Basis observations. Reuse public `render_memory_context`, `ChatTextModel`, `settle_memory_state` and typed SDK.
+
+- [ ] RED fixtures require modes exactly none, Episode+Recollection base, identical base+learned Disposition, identical base+Oracle; compare actual base bytes, fixed role/current input and token bounds. Reject omitted arms, arbitrary active Seeds, fake canonical Oracle refs, duplicate/unselected Delivery refs, rendered ref/text drift and skipped/incomplete calls.
+- [ ] Pre-select all four runs before any alternative answer/feedback. They use the same exact Situation SourceEvent and Session and canonical pre-feedback items, different run refs. Verify item snapshots agree. Prepare one bounded foundation text once and copy exactly. Canonical Role remains equal across arms; none does not remove the external role.
+- [ ] Record canonical Delivery for the actual included refs before request; none with no canonical material records explicit empty-injection trace, no fabricated receipt. Oracle extra tendency goes only in eval prompt metadata; actual canonical base refs alone enter its Delivery.
+- [ ] Call the actual model, capture attempt/start/input/output/stop/budgets; Observe the exact returned text as AgentAct bound to the same Situation/run. Persist all four raw alternatives before judging/feeding back so no changed Seed leaks into another answer. Alternative answers in one Session cannot form independent support.
+- [ ] RED lifecycle fixtures reject feedback to wrong run/receipt/source chain, absent delivery gaining Seed qualification, current task edit becoming lasting ADAPT, and late text guessing an association. Implement only Harness integrity; Core remains commit authority. GREEN fixtures/eval+SDK regression; commit.
+
+## Task 3: Live semantic replay, common Oracle manipulation and correction latency
+
+**Files:** Create `eval/python/src/memory_core_eval/memory_effect_cli.py`; create `eval/python/tests/test_memory_effect_cli.py`; runtime evidence only in this plan's ignored workspace. Reuse existing provider and reference Worker without paired-ablation wrappers or semantic replay.
+
+**Interfaces:** live command freezes one complete manifest then replays the new cohort via public Core; scorer/judging runs only after raw answers are durable. Each expected call has captured starts and exactly one complete result or explicit failure. `summarize_effect` emits source/candidate/formation/Select/render/Delivery/behavior/correction stages independently.
+
+- [ ] RED validation rejects partial manifests, changed data/harness/model/budget, answer/judge failures silently excluded, missing negative controls, missing forward/reverse position judgments and incomplete semantic expectations. Implement live orchestration and exact inventory; GREEN CLI tests before calls.
+- [ ] Run actual full-service G3/G5 cases against fresh isolated scopes. Record actual Target/body/operation, version retirement/current text, paired Source/Outcome/Delivery Basis and safe diagnostic classes. No feedback/silence/merely correct facts may be counted as successful tendency formation; a neutral Outcome can still produce reenactment of an actual delivered behavior. Inspect every semantic expectation explicitly.
+- [ ] Run four arms on the same eight unseen trajectories at the preregistered budgets/roles/model. Generate in deterministic balanced hashed arm order; judge all six arm pairs in both response positions, with memory arm names/refs absent from judge inputs. Record disagreements as inconclusive, never majority-vote them into wins. Negative formation/applicability controls remain in denominator.
+- [ ] Add separate preregistered Oracle-versus-anti manipulation controls on the same probe inputs/budget, outside the four main arms and with no canonical Oracle/anti authority. Primary Oracle identification gate: position-consistent Oracle beats base on≥6/8, loses0/8; likewise Oracle beats anti on≥6/8, loses0/8. Ties/inconsistent positions do not count as wins. Report exact paired sign probability/uncertainty, finite synthetic scope and all failures. If this gate fails, do not interpret learned/base differences as an architectural bottleneck or close the goal; diagnose Harness ceiling and ledger the next independent frozen diagnostic rather than retuning these results.
+- [ ] Only after all alternatives are generated, admit attributed external feedback to each exact real chain. For learned correction cases, add one explicit USER lasting correction in a complete current Episode; inspect existing Target/version and no new ADAPT authority. Probe first settled subsequent same-condition and different-condition turns (at most three, pre-frozen) and report turns/time to a correct committed understanding and actual response, including unresolved cases. Late feedback enters only the named trusted old run/receipt/source refs; wrong/missing association has no eligible effect.
+- [ ] A concrete failure gets a ledgered minimal plan delta plus meaningful RED→GREEN under the owning Core/Worker/Chorai boundaries; preserve private sealed contexts/source snapshot semantics and exact both-store equivalents. Never blindly add K, confidence, approvals, a new memory type or success-only filtering. Commit actual complete evidence and repairs.
+
+## Task 4: Full goal audit, engineering verification and one final review
+
+**Files:** goal/spec, this plan, `eval/reports/2026-10-05-memory-effect-causal-gate.zh-CN.md` (use actual completion date if later), relevant architecture/rules/routing only for actual semantic changes, `docs/evidence/<actual-date>-memory-effect-causal-gate-review.md`.
+
+- [ ] Map each G1–G5 requirement to actual preserved old regression and new full-service/behavior trace; enumerate every remaining uncertainty and denominator. Engineering passage, synthetic inference and natural-distribution benefit stay distinct. Source namespaces/physical upstream authority and counterfactual Session identity are explicit.
+- [ ] Run required changed packages/compliance/SDK/Worker+eval/full Core and both migrated Store/runtime gates after any repair. For any Chorai DB/API change, use registered runtime reconciliation and actual profile/Make restart/health200/non404 checks; no schema change is currently planned. Existing production G2 integration remains covered, no LLM in Go.
+- [ ] Commit final evidence; dispatch one fresh whole-plan reviewer under executing-plans. Re-grade all findings and each declined item; Critical/Important get one test-backed fix pass and green suite, Minors/rulings/costs durable. No second review. Preserve actual complete traces and source snapshots before scratch cleanup.
+- [ ] Audit exact full-goal completion conditions before update_goal: all five required repairs/regressions, actual lifecycle, completed semantic expectations, identifiable Oracle, complete four-arm/negative/position/correction records and honest conclusion. If any required gate remains, keep active and continue meaningful authorized work; no premature complete or autonomous pause. Keep branches local for user review.
