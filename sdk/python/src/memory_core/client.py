@@ -14,7 +14,7 @@ TokenProvider = Callable[[str], str | Awaitable[str]]
 
 
 class AsyncMemoryClient:
-    """Authenticated async client for the four public Memory Core RPCs."""
+    """Authenticated async client for the public Memory Core RPCs."""
 
     def __init__(
         self,
@@ -94,6 +94,18 @@ class AsyncMemoryClient:
     ) -> memory_pb2.MemoryContext:
         return await self._call(
             self._stub.SelectMemory,
+            request,
+            request.scope.tenant_ref,
+            options,
+        )
+
+    async def replay_memory_context(
+        self,
+        request: memory_pb2.SelectMemoryRequest,
+        **options: Any,
+    ) -> memory_pb2.MemoryContext:
+        return await self._call(
+            self._stub.ReplayMemoryContext,
             request,
             request.scope.tenant_ref,
             options,

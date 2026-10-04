@@ -45,6 +45,11 @@ class MemoryCoreStub(object):
                 request_serializer=memory__core_dot_v1_dot_memory__pb2.SelectMemoryRequest.SerializeToString,
                 response_deserializer=memory__core_dot_v1_dot_memory__pb2.MemoryContext.FromString,
                 _registered_method=True)
+        self.ReplayMemoryContext = channel.unary_unary(
+                '/memory.v1.MemoryCore/ReplayMemoryContext',
+                request_serializer=memory__core_dot_v1_dot_memory__pb2.SelectMemoryRequest.SerializeToString,
+                response_deserializer=memory__core_dot_v1_dot_memory__pb2.MemoryContext.FromString,
+                _registered_method=True)
         self.RecordMemoryDelivery = channel.unary_unary(
                 '/memory.v1.MemoryCore/RecordMemoryDelivery',
                 request_serializer=memory__core_dot_v1_dot_memory__pb2.MemoryDeliveryReceipt.SerializeToString,
@@ -73,6 +78,16 @@ class MemoryCoreServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def ReplayMemoryContext(self, request, context):
+        """Read an existing frozen Context without selecting or creating one.
+        The caller supplies the original scope, run, ordered sources and budget;
+        constitution must be absent. Core restores the stored Constitution and
+        verifies the complete original request hash before returning its Context.
+        """
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
     def RecordMemoryDelivery(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
@@ -95,6 +110,11 @@ def add_MemoryCoreServicer_to_server(servicer, server):
             ),
             'SelectMemory': grpc.unary_unary_rpc_method_handler(
                     servicer.SelectMemory,
+                    request_deserializer=memory__core_dot_v1_dot_memory__pb2.SelectMemoryRequest.FromString,
+                    response_serializer=memory__core_dot_v1_dot_memory__pb2.MemoryContext.SerializeToString,
+            ),
+            'ReplayMemoryContext': grpc.unary_unary_rpc_method_handler(
+                    servicer.ReplayMemoryContext,
                     request_deserializer=memory__core_dot_v1_dot_memory__pb2.SelectMemoryRequest.FromString,
                     response_serializer=memory__core_dot_v1_dot_memory__pb2.MemoryContext.SerializeToString,
             ),
@@ -162,6 +182,33 @@ class MemoryCore(object):
             request,
             target,
             '/memory.v1.MemoryCore/SelectMemory',
+            memory__core_dot_v1_dot_memory__pb2.SelectMemoryRequest.SerializeToString,
+            memory__core_dot_v1_dot_memory__pb2.MemoryContext.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ReplayMemoryContext(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/memory.v1.MemoryCore/ReplayMemoryContext',
             memory__core_dot_v1_dot_memory__pb2.SelectMemoryRequest.SerializeToString,
             memory__core_dot_v1_dot_memory__pb2.MemoryContext.FromString,
             options,

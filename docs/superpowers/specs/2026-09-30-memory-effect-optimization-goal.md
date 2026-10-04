@@ -139,7 +139,7 @@
 - **Ontology：**只消费既有 Actor／关系／消息／run 的可信引用，不新增 Kernel ObjectType、RelationType 或 ActionType。
 - **写路径：**不新增 Kernel 或产品身份命令；现有来源绑定的 outbox operational evidence 与 Core 因果写路径保持不变，不制造重复 Activity。
 - **权限：**exact owner 校验及 permission-filter-first 不变；不由文本推断身份或权限。
-- **协议／数据：**接线已有公开字段；G2 在原 outbox 增加来源索引并显式回填，用于物理来源快照的不变性和重放。无新 learned-memory 表或 Core RPC。后续其他 schema／公开契约变化仍须先记录具体资格或状态变化。
+- **协议／数据：**接线已有公开字段；G2 在原 outbox 增加来源索引并显式回填，用于物理来源快照的不变性和重放。无新 learned-memory 表。G2 独立审查复现旧零预算 Select 在升级后的冻结请求冲突；追加只读 `ReplayMemoryContext`，验证原完整 scope/run、来源顺序和预算后恢复历史 Constitution，不创建 Context、不刷新 UNKNOWN。此为防止已选择但尚未输出的旧 run 永久受限的必要公开契约变化；Core 先升级。后续其他 schema／公开契约变化仍须先记录具体资格或状态变化。
 - **冻结：**在线 Select 无生成式 AI；LLM 执行留在 Python；Go 负责业务编排。模型不生成 ID、confidence、权重或长理由；普通 AI 结果不成为 durable Proposal。
 - **回滚：**各子任务独立提交，按提交撤回；不清理既有用户数据。索引仍可由规范真源重建。
 

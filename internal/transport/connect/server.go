@@ -41,6 +41,17 @@ func (server *Server) SelectMemory(ctx context.Context, request *connect.Request
 	return connectResponse(response, err)
 }
 
+func (server *Server) ReplayMemoryContext(ctx context.Context, request *connect.Request[memoryv1.SelectMemoryRequest]) (*connect.Response[memoryv1.MemoryContext], error) {
+	service, ok := server.service.(interface {
+		ReplayMemoryContext(context.Context, *memoryv1.SelectMemoryRequest) (*memoryv1.MemoryContext, error)
+	})
+	if !ok {
+		return nil, connect.NewError(connect.CodeUnimplemented, errors.New("frozen MemoryContext replay is unavailable"))
+	}
+	response, err := service.ReplayMemoryContext(ctx, request.Msg)
+	return connectResponse(response, err)
+}
+
 func (server *Server) RecordMemoryDelivery(ctx context.Context, request *connect.Request[memoryv1.MemoryDeliveryReceipt]) (*connect.Response[memoryv1.ReceiptAck], error) {
 	if server.service == nil {
 		return nil, connect.NewError(connect.CodeInternal, errors.New("memory service is unavailable"))

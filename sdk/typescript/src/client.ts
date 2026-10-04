@@ -125,6 +125,12 @@ function wrapClient(
         (boundedOptions) => raw.selectMemory(request, boundedOptions),
         callOptions,
       ),
+    replayMemoryContext: (request, callOptions) =>
+      call(
+        request.scope?.tenantRef ?? "",
+        (boundedOptions) => raw.replayMemoryContext(request, boundedOptions),
+        callOptions,
+      ),
     recordMemoryDelivery: (request, callOptions) =>
       call(
         request.scope?.tenantRef ?? "",

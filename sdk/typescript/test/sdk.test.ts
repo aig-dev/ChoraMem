@@ -89,7 +89,7 @@ afterEach(() => {
 });
 
 describe("MemoryCoreClient", () => {
-  it("delegates all four methods with per-request auth and default deadline", async () => {
+  it("delegates all methods with per-request auth and default deadline", async () => {
     const transport = new FakeTransport();
     const tenants: string[] = [];
     const client = createMemoryCoreClient(transport, {
@@ -102,16 +102,18 @@ describe("MemoryCoreClient", () => {
 
     await client.observeSourceEvent({ sourceEvent: { scope } });
     await client.selectMemory({ scope });
+    await client.replayMemoryContext({ scope });
     await client.recordMemoryDelivery({ scope });
     await client.reportOutcome({ scope });
 
     expect(transport.calls.map((call) => call.method)).toEqual([
       "observeSourceEvent",
       "selectMemory",
+      "replayMemoryContext",
       "recordMemoryDelivery",
       "reportOutcome",
     ]);
-    expect(tenants).toEqual(Array(4).fill("tenant-1"));
+    expect(tenants).toEqual(Array(5).fill("tenant-1"));
     expect(transport.calls.every((call) => call.timeoutMs === 7_000)).toBe(true);
     expect(
       transport.calls.every(

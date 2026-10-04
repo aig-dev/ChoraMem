@@ -29,6 +29,7 @@ func TestCoreStoreMethodSetIsMinimalAndFrozen(t *testing.T) {
 		"Observe",
 		"Ping",
 		"RecordMemoryDelivery",
+		"ReplayMemoryContext",
 		"ReportOutcome",
 		"RetryConsolidationJob",
 		"RetryMemoryIndexOperation",

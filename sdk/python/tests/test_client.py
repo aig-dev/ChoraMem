@@ -34,6 +34,12 @@ def rpc_cases() -> list[tuple[str, str, Any, Any]]:
             memory_pb2.MemoryContext(),
         ),
         (
+            "replay_memory_context",
+            "/memory.v1.MemoryCore/ReplayMemoryContext",
+            memory_pb2.SelectMemoryRequest(scope=scope()),
+            memory_pb2.MemoryContext(),
+        ),
+        (
             "record_memory_delivery",
             "/memory.v1.MemoryCore/RecordMemoryDelivery",
             memory_pb2.MemoryDeliveryReceipt(scope=scope()),
@@ -49,7 +55,7 @@ def rpc_cases() -> list[tuple[str, str, Any, Any]]:
 
 
 @pytest.mark.asyncio
-async def test_four_rpcs_use_exact_tenant_token_and_default_deadline() -> None:
+async def test_all_rpcs_use_exact_tenant_token_and_default_deadline() -> None:
     all_cases = rpc_cases()
     channel = FakeChannel({path: response for _, path, _, response in all_cases})
     tenants: list[str] = []
@@ -71,7 +77,7 @@ async def test_four_rpcs_use_exact_tenant_token_and_default_deadline() -> None:
             "metadata": (("authorization", "Bearer token:tenant-1"),),
         }
 
-    assert tenants == ["tenant-1"] * 4
+    assert tenants == ["tenant-1"] * len(all_cases)
 
 
 @pytest.mark.asyncio

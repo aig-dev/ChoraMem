@@ -10,6 +10,7 @@ import (
 	memoryv1 "github.com/aig-dev/ChoraMem/gen/memory/v1"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/protobuf/proto"
 )
 
 func TestRunningMemorydPersistsEpisodeThroughPublicGRPC(t *testing.T) {
@@ -73,6 +74,12 @@ func TestRunningMemorydPersistsEpisodeThroughPublicGRPC(t *testing.T) {
 	if selected.GetConstitution().GetMemoryRef() != "constitution-v1" ||
 		len(selected.GetRecollections()) != 0 || len(selected.GetDispositions()) != 0 {
 		t.Fatalf("MemoryContext = %#v; want frozen Constitution only", selected)
+	}
+	replayed, err := client.ReplayMemoryContext(ctx, &memoryv1.SelectMemoryRequest{
+		Scope: scope, RunRef: identity + "-run", SituationSourceEventRefs: []string{situationRequest.GetSourceEvent().GetSourceRef()},
+	})
+	if err != nil || !proto.Equal(replayed, selected) {
+		t.Fatalf("running Memoryd frozen replay = (%#v, %v); want exact selected snapshot", replayed, err)
 	}
 
 	delivery, err := client.RecordMemoryDelivery(ctx, &memoryv1.MemoryDeliveryReceipt{

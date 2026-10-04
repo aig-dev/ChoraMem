@@ -269,6 +269,108 @@ func Run(t *testing.T, factory Factory) {
 func RunEpisodeEvidence(t *testing.T, factory IndexedFactory) {
 	t.Helper()
 
+	t.Run("frozen_context_replay_restores_legacy_baseline_without_creating_or_rewriting", func(t *testing.T) {
+		store := migratedIndexedStore(t, factory, &scriptedIndex{})
+		reader, ok := store.(interface {
+			ReplayMemoryContext(context.Context, selection.SelectRequest) (selection.MemoryContext, error)
+		})
+		if !ok {
+			t.Fatal("store cannot replay an already-frozen Context without guessing Current")
+		}
+		scenario := newScenario(store)
+		query := scenario.source("legacy-replay-query", "the original physical input")
+		scenario.observe(t, "legacy-replay-query", query, ledger.EpisodeBinding{})
+		original := selection.SelectRequest{Scope: scenario.scope, RunRef: scenario.prefix + "-legacy-replay", SituationSourceRefs: []string{query.Ref}, Constitution: selection.Constitution{MemoryRef: "constitution:historical", Text: "historical external role"}}
+		frozen, err := store.SelectMemory(testContext(t), original)
+		if err != nil {
+			t.Fatal(err)
+		}
+		request := original
+		request.Constitution = selection.Constitution{}
+		replayed, err := reader.ReplayMemoryContext(testContext(t), request)
+		if err != nil || !reflect.DeepEqual(replayed, frozen) {
+			t.Fatalf("ReplayMemoryContext = (%#v, %v); want exact %#v", replayed, err, frozen)
+		}
+		// Replay does not change Select's immutable exact-request contract.
+		if _, err := store.SelectMemory(testContext(t), request); !errors.Is(err, selection.ErrRunConflict) {
+			t.Fatalf("rewritten Select = %v; want ErrRunConflict", err)
+		}
+		for name, mutate := range map[string]func(*selection.SelectRequest){
+			"sources": func(value *selection.SelectRequest) { value.SituationSourceRefs = []string{query.Ref + "-changed"} },
+			"budget":  func(value *selection.SelectRequest) { value.EpisodeEvidenceMaxBytes = 8192 },
+		} {
+			t.Run(name, func(t *testing.T) {
+				changed := request
+				mutate(&changed)
+				if _, err := reader.ReplayMemoryContext(testContext(t), changed); !errors.Is(err, selection.ErrRunConflict) {
+					t.Fatalf("changed replay = %v; want ErrRunConflict", err)
+				}
+			})
+		}
+		if _, err := reader.ReplayMemoryContext(testContext(t), original); !errors.Is(err, selection.ErrInvalidSelectRequest) {
+			t.Fatalf("caller-supplied replay Constitution = %v; want rejection", err)
+		}
+		missing := request
+		missing.RunRef += "-absent"
+		if _, err := reader.ReplayMemoryContext(testContext(t), missing); !errors.Is(err, selection.ErrMemoryContextNotFound) {
+			t.Fatalf("missing replay = %v; want NotFound without selection or creation", err)
+		}
+		// A subsequent genuine Select is free to freeze a different role: the
+		// failed read has not admitted an empty-baseline Context under this run.
+		missing.Constitution = selection.Constitution{MemoryRef: "constitution:new", Text: "new external role"}
+		if value, err := store.SelectMemory(testContext(t), missing); err != nil || value.Constitution != missing.Constitution {
+			t.Fatalf("Select after absent read = (%#v, %v)", value, err)
+		}
+		for name, mutate := range map[string]func(*selection.SelectRequest){
+			"tenant":       func(v *selection.SelectRequest) { v.Scope.TenantRef += "-other" },
+			"agent":        func(v *selection.SelectRequest) { v.Scope.AgentRef += "-other" },
+			"relationship": func(v *selection.SelectRequest) { v.Scope.RelationshipRef += "-other" },
+			"session":      func(v *selection.SelectRequest) { v.Scope.SessionRef += "-other" },
+			"kind":         func(v *selection.SelectRequest) { v.Scope.Kind = ledger.ScopeKindAgent; v.Scope.RelationshipRef = "" },
+		} {
+			t.Run("wrong_"+name, func(t *testing.T) {
+				changed := request
+				mutate(&changed)
+				if _, err := reader.ReplayMemoryContext(testContext(t), changed); !errors.Is(err, selection.ErrMemoryContextNotFound) {
+					t.Fatalf("wrong-scope replay = %v; want NotFound", err)
+				}
+			})
+		}
+	})
+
+	t.Run("read_replay_preserves_unknown_and_nonzero_budget_and_source_order", func(t *testing.T) {
+		searchCalls := 0
+		index := &scriptedIndex{}
+		index.search = func(memoryindex.Query) []memoryindex.Candidate { searchCalls++; return index.candidates }
+		store := migratedIndexedStore(t, factory, index)
+		scenario := newScenario(store)
+		episode, _, _ := scenario.materializeEpisodeWithTexts(t, "read-history", "source history", "act history", scenario.scope)
+		index.candidates = []memoryindex.Candidate{{Kind: memoryindex.KindEpisode, Ref: episode}}
+		first := scenario.source("read-first", "first physical input")
+		second := scenario.source("read-second", "second physical input")
+		scenario.observe(t, "read-first", first, ledger.EpisodeBinding{})
+		scenario.observe(t, "read-second", second, ledger.EpisodeBinding{})
+		for _, budget := range []int{0, 8192} {
+			request := selection.SelectRequest{Scope: scenario.scope, RunRef: fmt.Sprintf("%s-read-%d", scenario.prefix, budget), SituationSourceRefs: []string{first.Ref, second.Ref}, EpisodeEvidenceMaxBytes: budget}
+			frozen, err := store.SelectMemory(testContext(t), request)
+			if err != nil {
+				t.Fatal(err)
+			}
+			queryCount := searchCalls
+			replayed, err := store.ReplayMemoryContext(testContext(t), request)
+			if err != nil || !reflect.DeepEqual(replayed, frozen) || searchCalls != queryCount {
+				t.Fatalf("read replay changed frozen Context or consulted the index: (%#v, %v)", replayed, err)
+			}
+			if budget != 0 && len(replayed.EpisodeEvidence) == 0 {
+				t.Fatal("read discarded frozen Episode evidence")
+			}
+			request.SituationSourceRefs = []string{second.Ref, first.Ref}
+			if _, err := store.ReplayMemoryContext(testContext(t), request); !errors.Is(err, selection.ErrRunConflict) {
+				t.Fatalf("reordered replay = %v; want RunConflict", err)
+			}
+		}
+	})
+
 	t.Run("zero_budget_replays_legacy_context_and_nonzero_budget_changes_run_identity", func(t *testing.T) {
 		index := &scriptedIndex{}
 		store := migratedIndexedStore(t, factory, index)

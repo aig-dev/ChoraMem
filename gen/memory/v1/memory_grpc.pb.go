@@ -21,6 +21,7 @@ const _ = grpc.SupportPackageIsVersion9
 const (
 	MemoryCore_ObserveSourceEvent_FullMethodName   = "/memory.v1.MemoryCore/ObserveSourceEvent"
 	MemoryCore_SelectMemory_FullMethodName         = "/memory.v1.MemoryCore/SelectMemory"
+	MemoryCore_ReplayMemoryContext_FullMethodName  = "/memory.v1.MemoryCore/ReplayMemoryContext"
 	MemoryCore_RecordMemoryDelivery_FullMethodName = "/memory.v1.MemoryCore/RecordMemoryDelivery"
 	MemoryCore_ReportOutcome_FullMethodName        = "/memory.v1.MemoryCore/ReportOutcome"
 )
@@ -33,6 +34,11 @@ const (
 type MemoryCoreClient interface {
 	ObserveSourceEvent(ctx context.Context, in *ObserveSourceEventRequest, opts ...grpc.CallOption) (*SourceEventReceipt, error)
 	SelectMemory(ctx context.Context, in *SelectMemoryRequest, opts ...grpc.CallOption) (*MemoryContext, error)
+	// Read an existing frozen Context without selecting or creating one.
+	// The caller supplies the original scope, run, ordered sources and budget;
+	// constitution must be absent. Core restores the stored Constitution and
+	// verifies the complete original request hash before returning its Context.
+	ReplayMemoryContext(ctx context.Context, in *SelectMemoryRequest, opts ...grpc.CallOption) (*MemoryContext, error)
 	RecordMemoryDelivery(ctx context.Context, in *MemoryDeliveryReceipt, opts ...grpc.CallOption) (*ReceiptAck, error)
 	ReportOutcome(ctx context.Context, in *ReportOutcomeRequest, opts ...grpc.CallOption) (*OutcomeReceipt, error)
 }
@@ -59,6 +65,16 @@ func (c *memoryCoreClient) SelectMemory(ctx context.Context, in *SelectMemoryReq
 	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
 	out := new(MemoryContext)
 	err := c.cc.Invoke(ctx, MemoryCore_SelectMemory_FullMethodName, in, out, cOpts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *memoryCoreClient) ReplayMemoryContext(ctx context.Context, in *SelectMemoryRequest, opts ...grpc.CallOption) (*MemoryContext, error) {
+	cOpts := append([]grpc.CallOption{grpc.StaticMethod()}, opts...)
+	out := new(MemoryContext)
+	err := c.cc.Invoke(ctx, MemoryCore_ReplayMemoryContext_FullMethodName, in, out, cOpts...)
 	if err != nil {
 		return nil, err
 	}
@@ -93,6 +109,11 @@ func (c *memoryCoreClient) ReportOutcome(ctx context.Context, in *ReportOutcomeR
 type MemoryCoreServer interface {
 	ObserveSourceEvent(context.Context, *ObserveSourceEventRequest) (*SourceEventReceipt, error)
 	SelectMemory(context.Context, *SelectMemoryRequest) (*MemoryContext, error)
+	// Read an existing frozen Context without selecting or creating one.
+	// The caller supplies the original scope, run, ordered sources and budget;
+	// constitution must be absent. Core restores the stored Constitution and
+	// verifies the complete original request hash before returning its Context.
+	ReplayMemoryContext(context.Context, *SelectMemoryRequest) (*MemoryContext, error)
 	RecordMemoryDelivery(context.Context, *MemoryDeliveryReceipt) (*ReceiptAck, error)
 	ReportOutcome(context.Context, *ReportOutcomeRequest) (*OutcomeReceipt, error)
 	mustEmbedUnimplementedMemoryCoreServer()
@@ -110,6 +131,9 @@ func (UnimplementedMemoryCoreServer) ObserveSourceEvent(context.Context, *Observ
 }
 func (UnimplementedMemoryCoreServer) SelectMemory(context.Context, *SelectMemoryRequest) (*MemoryContext, error) {
 	return nil, status.Error(codes.Unimplemented, "method SelectMemory not implemented")
+}
+func (UnimplementedMemoryCoreServer) ReplayMemoryContext(context.Context, *SelectMemoryRequest) (*MemoryContext, error) {
+	return nil, status.Error(codes.Unimplemented, "method ReplayMemoryContext not implemented")
 }
 func (UnimplementedMemoryCoreServer) RecordMemoryDelivery(context.Context, *MemoryDeliveryReceipt) (*ReceiptAck, error) {
 	return nil, status.Error(codes.Unimplemented, "method RecordMemoryDelivery not implemented")
@@ -174,6 +198,24 @@ func _MemoryCore_SelectMemory_Handler(srv interface{}, ctx context.Context, dec 
 	return interceptor(ctx, in, info, handler)
 }
 
+func _MemoryCore_ReplayMemoryContext_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SelectMemoryRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(MemoryCoreServer).ReplayMemoryContext(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: MemoryCore_ReplayMemoryContext_FullMethodName,
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(MemoryCoreServer).ReplayMemoryContext(ctx, req.(*SelectMemoryRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 func _MemoryCore_RecordMemoryDelivery_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(MemoryDeliveryReceipt)
 	if err := dec(in); err != nil {
@@ -224,6 +266,10 @@ var MemoryCore_ServiceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "SelectMemory",
 			Handler:    _MemoryCore_SelectMemory_Handler,
+		},
+		{
+			MethodName: "ReplayMemoryContext",
+			Handler:    _MemoryCore_ReplayMemoryContext_Handler,
 		},
 		{
 			MethodName: "RecordMemoryDelivery",

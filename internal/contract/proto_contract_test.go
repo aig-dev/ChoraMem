@@ -21,6 +21,7 @@ func TestGeneratedPublicMemoryCoreServiceHasOnlyFrozenRPCs(t *testing.T) {
 	want := []string{
 		"ObserveSourceEvent",
 		"SelectMemory",
+		"ReplayMemoryContext",
 		"RecordMemoryDelivery",
 		"ReportOutcome",
 	}
@@ -36,12 +37,14 @@ func TestGeneratedConnectSurfaceHasOnlyFrozenMemoryProcedures(t *testing.T) {
 	got := []string{
 		memoryv1connect.MemoryCoreObserveSourceEventProcedure,
 		memoryv1connect.MemoryCoreSelectMemoryProcedure,
+		memoryv1connect.MemoryCoreReplayMemoryContextProcedure,
 		memoryv1connect.MemoryCoreRecordMemoryDeliveryProcedure,
 		memoryv1connect.MemoryCoreReportOutcomeProcedure,
 	}
 	want := []string{
 		"/memory.v1.MemoryCore/ObserveSourceEvent",
 		"/memory.v1.MemoryCore/SelectMemory",
+		"/memory.v1.MemoryCore/ReplayMemoryContext",
 		"/memory.v1.MemoryCore/RecordMemoryDelivery",
 		"/memory.v1.MemoryCore/ReportOutcome",
 	}
@@ -87,6 +90,7 @@ func TestPublicMemoryCoreHasOnlyFrozenRPCs(t *testing.T) {
 	want := []rpcSignature{
 		{"ObserveSourceEvent", "ObserveSourceEventRequest", "SourceEventReceipt"},
 		{"SelectMemory", "SelectMemoryRequest", "MemoryContext"},
+		{"ReplayMemoryContext", "SelectMemoryRequest", "MemoryContext"},
 		{"RecordMemoryDelivery", "MemoryDeliveryReceipt", "ReceiptAck"},
 		{"ReportOutcome", "ReportOutcomeRequest", "OutcomeReceipt"},
 	}

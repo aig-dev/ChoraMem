@@ -54,3 +54,5 @@ Delivery 只记录实际注入的 ref；引用原文中的句子不会改变 Ada
 完整、Harness-neutral 的 `Situation -> Select -> text-only render -> Delivery -> model -> AgentAct -> explicit Outcome` 示例见 [`examples/generic-lifecycle.ts`](examples/generic-lifecycle.ts)。传入 `episodeEvidence` 可启用固定字节与总 token 双重预算；模型回调仍只接收纯文本，不会接触 protobuf、context ref 或 memory ref。
 
 验证：`npm test && npm run typecheck && npm run build && npm run generate:check`。
+
+`ReplayMemoryContext` uses `SelectMemoryRequest` with no Constitution and the original exact scope/run, ordered source refs and evidence budget. It restores only an existing frozen Context, including its historical Constitution; missing Contexts return NotFound and changed requests conflict. Deploy a compatible Core before clients that need this recovery.

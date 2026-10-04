@@ -78,6 +78,31 @@ func (server *Server) RecordMemoryDelivery(ctx context.Context, request *memoryv
 	return &memoryv1.ReceiptAck{ReceiptRef: receipt.Ref}, nil
 }
 
+func (server *Server) ReplayMemoryContext(ctx context.Context, request *memoryv1.SelectMemoryRequest) (*memoryv1.MemoryContext, error) {
+	command, err := selectCommand(ctx, request)
+	if err != nil {
+		return nil, err
+	}
+	if request.GetConstitution() != nil {
+		return nil, invalidArgument("replay restores the frozen Constitution; caller Constitution must be absent")
+	}
+	reader, ok := server.core.(interface {
+		ReplayMemoryContext(context.Context, selection.SelectRequest) (selection.MemoryContext, error)
+	})
+	if !ok {
+		return nil, status.Error(codes.Unimplemented, "frozen MemoryContext replay is unavailable")
+	}
+	value, err := reader.ReplayMemoryContext(ctx, command)
+	if err != nil {
+		return nil, coreStatus("replay", err)
+	}
+	response, err := mapMemoryContext(value)
+	if err != nil {
+		return nil, status.Error(codes.Internal, "memory core returned an invalid frozen MemoryContext")
+	}
+	return response, nil
+}
+
 func (server *Server) ReportOutcome(ctx context.Context, request *memoryv1.ReportOutcomeRequest) (*memoryv1.OutcomeReceipt, error) {
 	report, err := outcomeCommand(ctx, request)
 	if err != nil {
@@ -306,6 +331,8 @@ func mapEpisodeBinding(value *memoryv1.EpisodeBinding) (ledger.EpisodeBinding, e
 
 func coreStatus(operation string, err error) error {
 	switch {
+	case errors.Is(err, selection.ErrMemoryContextNotFound):
+		return status.Error(codes.NotFound, "frozen MemoryContext not found")
 	case errors.Is(err, ledger.ErrInvalidSourceEvent),
 		errors.Is(err, ledger.ErrInvalidEpisodeBinding),
 		errors.Is(err, selection.ErrInvalidSelectRequest),

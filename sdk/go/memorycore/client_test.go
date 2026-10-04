@@ -17,7 +17,7 @@ import (
 	"google.golang.org/grpc/test/bufconn"
 )
 
-func TestClientDelegatesFourGeneratedMethodsExactlyOnce(t *testing.T) {
+func TestClientDelegatesGeneratedMethodsExactlyOnce(t *testing.T) {
 	rpc := &fakeRPC{}
 	client, err := New(rpc, Config{TokenProvider: staticToken("token")})
 	if err != nil {
@@ -37,6 +37,9 @@ func TestClientDelegatesFourGeneratedMethodsExactlyOnce(t *testing.T) {
 	if _, err := client.SelectMemory(ctx, selectRequest); err != nil {
 		t.Fatalf("SelectMemory: %v", err)
 	}
+	if _, err := client.ReplayMemoryContext(ctx, selectRequest); err != nil {
+		t.Fatalf("ReplayMemoryContext: %v", err)
+	}
 	if _, err := client.RecordMemoryDelivery(ctx, delivery); err != nil {
 		t.Fatalf("RecordMemoryDelivery: %v", err)
 	}
@@ -49,6 +52,9 @@ func TestClientDelegatesFourGeneratedMethodsExactlyOnce(t *testing.T) {
 	}
 	if rpc.selectRequest != selectRequest || rpc.selectCalls != 1 {
 		t.Fatalf("Select delegation = (%p, %d)", rpc.selectRequest, rpc.selectCalls)
+	}
+	if rpc.replayRequest != selectRequest || rpc.replayCalls != 1 {
+		t.Fatalf("Replay delegation = (%p, %d)", rpc.replayRequest, rpc.replayCalls)
 	}
 	if rpc.delivery != delivery || rpc.deliveryCalls != 1 {
 		t.Fatalf("Delivery delegation = (%p, %d)", rpc.delivery, rpc.deliveryCalls)
@@ -79,6 +85,11 @@ func TestClientRejectsMissingOrMalformedTenantBeforeTokenOrRPC(t *testing.T) {
 		}},
 		{name: "select blank tenant", call: func() error {
 			_, err := client.SelectMemory(context.Background(), &memoryv1.SelectMemoryRequest{Scope: &memoryv1.MemoryScope{}})
+			return err
+		}},
+		{name: "replay nil", call: func() error { _, err := client.ReplayMemoryContext(context.Background(), nil); return err }},
+		{name: "replay missing scope", call: func() error {
+			_, err := client.ReplayMemoryContext(context.Background(), &memoryv1.SelectMemoryRequest{})
 			return err
 		}},
 		{name: "delivery all-whitespace tenant", call: func() error {
@@ -297,6 +308,10 @@ func TestClientRequestsTokenForExactTenantAndSetsBearerOnEveryCall(t *testing.T)
 			return err
 		},
 		func() error {
+			_, err := client.ReplayMemoryContext(context.Background(), &memoryv1.SelectMemoryRequest{Scope: &memoryv1.MemoryScope{TenantRef: "replay-tenant"}})
+			return err
+		},
+		func() error {
 			_, err := client.RecordMemoryDelivery(context.Background(), &memoryv1.MemoryDeliveryReceipt{Scope: &memoryv1.MemoryScope{TenantRef: "delivery-tenant"}})
 			return err
 		},
@@ -310,7 +325,7 @@ func TestClientRequestsTokenForExactTenantAndSetsBearerOnEveryCall(t *testing.T)
 			t.Fatalf("SDK call: %v", err)
 		}
 	}
-	want := []string{"observe-tenant", "select-tenant", "delivery-tenant", "outcome-tenant"}
+	want := []string{"observe-tenant", "select-tenant", "replay-tenant", "delivery-tenant", "outcome-tenant"}
 	if !reflect.DeepEqual(tenants, want) {
 		t.Fatalf("token tenants = %#v; want %#v", tenants, want)
 	}
@@ -358,17 +373,19 @@ func (counting *countingCredentials) ClientHandshake(
 type fakeRPC struct {
 	observe        *memoryv1.ObserveSourceEventRequest
 	selectRequest  *memoryv1.SelectMemoryRequest
+	replayRequest  *memoryv1.SelectMemoryRequest
 	delivery       *memoryv1.MemoryDeliveryReceipt
 	outcome        *memoryv1.ReportOutcomeRequest
 	observeCalls   int
 	selectCalls    int
+	replayCalls    int
 	deliveryCalls  int
 	outcomeCalls   int
 	inspectContext func(context.Context)
 }
 
 func (fake *fakeRPC) totalCalls() int {
-	return fake.observeCalls + fake.selectCalls + fake.deliveryCalls + fake.outcomeCalls
+	return fake.observeCalls + fake.selectCalls + fake.replayCalls + fake.deliveryCalls + fake.outcomeCalls
 }
 
 func (fake *fakeRPC) inspect(ctx context.Context) {
@@ -386,6 +403,12 @@ func (fake *fakeRPC) ObserveSourceEvent(ctx context.Context, request *memoryv1.O
 func (fake *fakeRPC) SelectMemory(ctx context.Context, request *memoryv1.SelectMemoryRequest, _ ...grpc.CallOption) (*memoryv1.MemoryContext, error) {
 	fake.inspect(ctx)
 	fake.selectRequest, fake.selectCalls = request, fake.selectCalls+1
+	return &memoryv1.MemoryContext{}, nil
+}
+
+func (fake *fakeRPC) ReplayMemoryContext(ctx context.Context, request *memoryv1.SelectMemoryRequest, _ ...grpc.CallOption) (*memoryv1.MemoryContext, error) {
+	fake.inspect(ctx)
+	fake.replayRequest, fake.replayCalls = request, fake.replayCalls+1
 	return &memoryv1.MemoryContext{}, nil
 }
 

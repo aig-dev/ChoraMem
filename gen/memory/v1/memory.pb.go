@@ -1400,11 +1400,12 @@ const file_memory_v1_memory_proto_rawDesc = "" +
 	"\x1dMEMORY_APPLICATION_SCOPE_SELF\x10\x01\x12\"\n" +
 	"\x1eMEMORY_APPLICATION_SCOPE_OTHER\x10\x02\x12%\n" +
 	"!MEMORY_APPLICATION_SCOPE_RELATION\x10\x03\x12&\n" +
-	"\"MEMORY_APPLICATION_SCOPE_SITUATION\x10\x042\xcf\x02\n" +
+	"\"MEMORY_APPLICATION_SCOPE_SITUATION\x10\x042\xa0\x03\n" +
 	"\n" +
 	"MemoryCore\x12Y\n" +
 	"\x12ObserveSourceEvent\x12$.memory.v1.ObserveSourceEventRequest\x1a\x1d.memory.v1.SourceEventReceipt\x12H\n" +
 	"\fSelectMemory\x12\x1e.memory.v1.SelectMemoryRequest\x1a\x18.memory.v1.MemoryContext\x12O\n" +
+	"\x13ReplayMemoryContext\x12\x1e.memory.v1.SelectMemoryRequest\x1a\x18.memory.v1.MemoryContext\x12O\n" +
 	"\x14RecordMemoryDelivery\x12 .memory.v1.MemoryDeliveryReceipt\x1a\x15.memory.v1.ReceiptAck\x12K\n" +
 	"\rReportOutcome\x12\x1f.memory.v1.ReportOutcomeRequest\x1a\x19.memory.v1.OutcomeReceiptB4Z2github.com/aig-dev/ChoraMem/gen/memory/v1;memoryv1b\x06proto3"
 
@@ -1466,14 +1467,16 @@ var file_memory_v1_memory_proto_depIdxs = []int32{
 	10, // 19: memory.v1.ReportOutcomeRequest.constitution:type_name -> memory.v1.Constitution
 	7,  // 20: memory.v1.MemoryCore.ObserveSourceEvent:input_type -> memory.v1.ObserveSourceEventRequest
 	9,  // 21: memory.v1.MemoryCore.SelectMemory:input_type -> memory.v1.SelectMemoryRequest
-	15, // 22: memory.v1.MemoryCore.RecordMemoryDelivery:input_type -> memory.v1.MemoryDeliveryReceipt
-	17, // 23: memory.v1.MemoryCore.ReportOutcome:input_type -> memory.v1.ReportOutcomeRequest
-	8,  // 24: memory.v1.MemoryCore.ObserveSourceEvent:output_type -> memory.v1.SourceEventReceipt
-	14, // 25: memory.v1.MemoryCore.SelectMemory:output_type -> memory.v1.MemoryContext
-	16, // 26: memory.v1.MemoryCore.RecordMemoryDelivery:output_type -> memory.v1.ReceiptAck
-	18, // 27: memory.v1.MemoryCore.ReportOutcome:output_type -> memory.v1.OutcomeReceipt
-	24, // [24:28] is the sub-list for method output_type
-	20, // [20:24] is the sub-list for method input_type
+	9,  // 22: memory.v1.MemoryCore.ReplayMemoryContext:input_type -> memory.v1.SelectMemoryRequest
+	15, // 23: memory.v1.MemoryCore.RecordMemoryDelivery:input_type -> memory.v1.MemoryDeliveryReceipt
+	17, // 24: memory.v1.MemoryCore.ReportOutcome:input_type -> memory.v1.ReportOutcomeRequest
+	8,  // 25: memory.v1.MemoryCore.ObserveSourceEvent:output_type -> memory.v1.SourceEventReceipt
+	14, // 26: memory.v1.MemoryCore.SelectMemory:output_type -> memory.v1.MemoryContext
+	14, // 27: memory.v1.MemoryCore.ReplayMemoryContext:output_type -> memory.v1.MemoryContext
+	16, // 28: memory.v1.MemoryCore.RecordMemoryDelivery:output_type -> memory.v1.ReceiptAck
+	18, // 29: memory.v1.MemoryCore.ReportOutcome:output_type -> memory.v1.OutcomeReceipt
+	25, // [25:30] is the sub-list for method output_type
+	20, // [20:25] is the sub-list for method input_type
 	20, // [20:20] is the sub-list for extension type_name
 	20, // [20:20] is the sub-list for extension extendee
 	0,  // [0:20] is the sub-list for field type_name

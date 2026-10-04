@@ -8,6 +8,11 @@ option go_package = "github.com/aig-dev/ChoraMem/gen/memory/v1;memoryv1";
 service MemoryCore {
   rpc ObserveSourceEvent(ObserveSourceEventRequest) returns (SourceEventReceipt);
   rpc SelectMemory(SelectMemoryRequest) returns (MemoryContext);
+  // Read an existing frozen Context without selecting or creating one.
+  // The caller supplies the original scope, run, ordered sources and budget;
+  // constitution must be absent. Core restores the stored Constitution and
+  // verifies the complete original request hash before returning its Context.
+  rpc ReplayMemoryContext(SelectMemoryRequest) returns (MemoryContext);
   rpc RecordMemoryDelivery(MemoryDeliveryReceipt) returns (ReceiptAck);
   rpc ReportOutcome(ReportOutcomeRequest) returns (OutcomeReceipt);
 }

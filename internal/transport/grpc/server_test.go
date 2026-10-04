@@ -129,6 +129,7 @@ func TestTenantMismatchRejectsEveryMethodBeforeCore(t *testing.T) {
 	}{
 		{name: "observe", call: func() error { _, err := server.ObserveSourceEvent(ctx, validObserveRequest()); return err }},
 		{name: "select", call: func() error { _, err := server.SelectMemory(ctx, validSelectRequest()); return err }},
+		{name: "replay", call: func() error { _, err := server.ReplayMemoryContext(ctx, validSelectRequest()); return err }},
 		{name: "delivery", call: func() error { _, err := server.RecordMemoryDelivery(ctx, validDeliveryRequest()); return err }},
 		{name: "outcome", call: func() error { _, err := server.ReportOutcome(ctx, validOutcomeRequest()); return err }},
 	}
@@ -254,6 +255,7 @@ type recordingCore struct {
 	observeBinding  ledger.EpisodeBinding
 	observeReceipt  ledger.ObserveReceipt
 	selectRequest   selection.SelectRequest
+	replayRequest   selection.SelectRequest
 	memoryContext   selection.MemoryContext
 	delivery        ledger.MemoryDelivery
 	deliveryReceipt ledger.MemoryDeliveryReceipt
@@ -271,6 +273,12 @@ func (core *recordingCore) Observe(_ context.Context, key string, event ledger.S
 func (core *recordingCore) SelectMemory(_ context.Context, request selection.SelectRequest) (selection.MemoryContext, error) {
 	core.calls++
 	core.selectRequest = request
+	return core.memoryContext, core.err
+}
+
+func (core *recordingCore) ReplayMemoryContext(_ context.Context, request selection.SelectRequest) (selection.MemoryContext, error) {
+	core.calls++
+	core.replayRequest = request
 	return core.memoryContext, core.err
 }
 

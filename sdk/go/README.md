@@ -3,12 +3,13 @@
 `SourceEvent.Constitution` 与 Outcome 的可选快照应使用与本轮 Select 相同的外生 Agent
 角色版本/正文；nil 保持旧调用兼容。来源快照不可变，后台只读，不是用户档案或 Basis。
 
-The Go SDK is a thin client for the four generated `memory.v1.MemoryCore` RPCs:
+The Go SDK is a thin client for the generated `memory.v1.MemoryCore` RPCs:
 
 1. `ObserveSourceEvent`
 2. `SelectMemory`
-3. `RecordMemoryDelivery`
-4. `ReportOutcome`
+3. `ReplayMemoryContext` (read-only frozen Context)
+4. `RecordMemoryDelivery`
+5. `ReportOutcome`
 
 It owns no Memory state machine. Requests and responses remain the generated protobuf types.
 
@@ -90,3 +91,5 @@ client, err := memorycore.New(generatedClient, memorycore.Config{TokenProvider: 
 ```
 
 `Close` is an idempotent no-op for an injected client or a client created with `NewFromConnection`; callers retain that transport's lifecycle.
+
+`ReplayMemoryContext` uses `SelectMemoryRequest` with no Constitution and the original exact scope/run, ordered source refs and evidence budget. It restores only an existing frozen Context, including its historical Constitution; missing Contexts return NotFound and changed requests conflict. Deploy a compatible Core before clients that need this recovery.

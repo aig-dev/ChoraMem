@@ -20,6 +20,7 @@ import (
 type CoreStore interface {
 	Observe(context.Context, string, ledger.SourceEvent, ledger.EpisodeBinding) (ledger.ObserveReceipt, error)
 	SelectMemory(context.Context, selection.SelectRequest) (selection.MemoryContext, error)
+	ReplayMemoryContext(context.Context, selection.SelectRequest) (selection.MemoryContext, error)
 	RecordMemoryDelivery(context.Context, ledger.MemoryDelivery) (ledger.MemoryDeliveryReceipt, error)
 	ReportOutcome(context.Context, ledger.OutcomeReport) (ledger.OutcomeReceipt, error)
 

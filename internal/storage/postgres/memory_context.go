@@ -24,8 +24,51 @@ type scopedIndexCandidate struct {
 	laneOrder      int
 }
 
-// SelectMemory freezes one deterministic selection result for an exact
-// run. Association scores are transient and never cross this boundary.
+// ReplayMemoryContext only reads an existing exact-scope Context. It restores
+// the historical external baseline before validating the original request hash;
+// it never calls Select, the index, or a Constitution provider and never creates
+// a Context, Activation, or receipt.
+func (store *Store) ReplayMemoryContext(ctx context.Context, request selection.SelectRequest) (selection.MemoryContext, error) {
+	if request.Constitution != (selection.Constitution{}) || !validSelectRequest(request) {
+		return selection.MemoryContext{}, selection.ErrInvalidSelectRequest
+	}
+	tx, err := store.pool.BeginTx(ctx, pgx.TxOptions{})
+	if err != nil {
+		return selection.MemoryContext{}, storageError("begin frozen MemoryContext replay", err)
+	}
+	defer func() { _ = tx.Rollback(ctx) }()
+	err = tx.QueryRow(ctx, `
+        SELECT constitution_ref, constitution_text
+        FROM memory_contexts
+        WHERE tenant_ref = $1 AND scope_kind = $2 AND agent_ref = $3
+          AND relationship_ref = $4 AND session_ref = $5 AND run_ref = $6
+    `, request.Scope.TenantRef, request.Scope.Kind, request.Scope.AgentRef,
+		request.Scope.RelationshipRef, request.Scope.SessionRef, request.RunRef,
+	).Scan(&request.Constitution.MemoryRef, &request.Constitution.Text)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return selection.MemoryContext{}, selection.ErrMemoryContextNotFound
+	}
+	if err != nil {
+		return selection.MemoryContext{}, storageError("read frozen Constitution for replay", err)
+	}
+	if !validSelectRequest(request) {
+		return selection.MemoryContext{}, selection.ErrInvalidSelectRequest
+	}
+	value, found, err := loadMemoryContext(ctx, tx, request, memoryRequestHash(request))
+	if err != nil {
+		return selection.MemoryContext{}, err
+	}
+	if !found {
+		return selection.MemoryContext{}, selection.ErrMemoryContextNotFound
+	}
+	if err := tx.Commit(ctx); err != nil {
+		return selection.MemoryContext{}, storageError("commit frozen MemoryContext replay", err)
+	}
+	return value, nil
+}
+
+// SelectMemory freezes one deterministic selection result for an exact run.
+// Association scores are transient and never cross this boundary.
 func (store *Store) SelectMemory(ctx context.Context, request selection.SelectRequest) (selection.MemoryContext, error) {
 	if !validSelectRequest(request) {
 		return selection.MemoryContext{}, selection.ErrInvalidSelectRequest

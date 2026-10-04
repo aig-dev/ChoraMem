@@ -283,6 +283,9 @@ func (core *parityCore) SelectMemory(context.Context, selection.SelectRequest) (
 	core.mu.Unlock()
 	return value, err
 }
+func (core *parityCore) ReplayMemoryContext(ctx context.Context, request selection.SelectRequest) (selection.MemoryContext, error) {
+	return core.SelectMemory(ctx, request)
+}
 func (core *parityCore) RecordMemoryDelivery(context.Context, ledger.MemoryDelivery) (ledger.MemoryDeliveryReceipt, error) {
 	return ledger.MemoryDeliveryReceipt{Ref: "delivery-1"}, core.nextError()
 }

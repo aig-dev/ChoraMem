@@ -61,7 +61,7 @@ Relational storage supports PostgreSQL and MySQL 8. Each deployment selects one 
 | Python | OpenAI Agents SDK Adapter | [Python SDK](sdk/python/README.md) |
 | TypeScript | Vercel AI SDK Adapter | [TypeScript SDK](sdk/typescript/README.md) |
 
-The public protocol provides four lifecycle methods: `ObserveSourceEvent`, `SelectMemory`, `RecordMemoryDelivery`, and `ReportOutcome`.
+The public protocol provides four lifecycle methods: `ObserveSourceEvent`, `SelectMemory`, `RecordMemoryDelivery`, and `ReportOutcome`, plus the read-only `ReplayMemoryContext` operation. Replay restores an existing exact-scope/run Context using its original ordered source refs and evidence budget; caller Constitution must be absent. It never selects or creates a Context.
 
 The Harness maintains the role baseline, chooses where to place memory in the prompt, and runs models, tools, and actions.
 

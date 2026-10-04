@@ -148,6 +148,23 @@ func (client *Client) SelectMemory(ctx context.Context, request *memoryv1.Select
 	return client.rpc.SelectMemory(callContext, request, options...)
 }
 
+// ReplayMemoryContext reads the original Context; Constitution must be absent.
+func (client *Client) ReplayMemoryContext(ctx context.Context, request *memoryv1.SelectMemoryRequest, options ...grpc.CallOption) (*memoryv1.MemoryContext, error) {
+	if request == nil {
+		return nil, fmt.Errorf("%w: ReplayMemoryContext requires scope.tenant_ref", ErrInvalidRequest)
+	}
+	tenantRef, err := requestTenant(request.GetScope())
+	if err != nil {
+		return nil, err
+	}
+	callContext, cancel, err := client.callContext(ctx, tenantRef)
+	if err != nil {
+		return nil, err
+	}
+	defer cancel()
+	return client.rpc.ReplayMemoryContext(callContext, request, options...)
+}
+
 func (client *Client) RecordMemoryDelivery(ctx context.Context, request *memoryv1.MemoryDeliveryReceipt, options ...grpc.CallOption) (*memoryv1.ReceiptAck, error) {
 	if request == nil {
 		return nil, fmt.Errorf("%w: RecordMemoryDelivery requires scope.tenant_ref", ErrInvalidRequest)

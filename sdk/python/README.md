@@ -62,3 +62,5 @@ adapter = OpenAIAgentsAdapter(
 python -m pip install -e '.[codegen]'
 ./scripts/generate-bindings.sh --check
 ```
+
+`ReplayMemoryContext` uses `SelectMemoryRequest` with no Constitution and the original exact scope/run, ordered source refs and evidence budget. It restores only an existing frozen Context, including its historical Constitution; missing Contexts return NotFound and changed requests conflict. Deploy a compatible Core before clients that need this recovery.

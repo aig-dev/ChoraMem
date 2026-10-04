@@ -241,7 +241,7 @@ Select 的顺序是：
 
 | 路径 | 内容 |
 |---|---|
-| `api/memory/v1` | 四个公开 RPC |
+| `api/memory/v1` | 四个 lifecycle RPC 与一个只读冻结 Context 重放 RPC |
 | `api/memory/inference/v1` | 一个内部纯文本 RPC |
 | `internal/core/ledger` | intake、Delivery、Outcome 的中立类型与校验 |
 | `internal/core/selection` | 无生成式 AI 的 Select |
@@ -252,6 +252,8 @@ Select 的顺序是：
 | `internal/scheduler` | lease / retry 编排，不理解迁移种类 |
 | `worker/python` | 无数据库权限的参考 Worker |
 | `sdk/*` | 三语言薄 Client 与两个参考 Adapter |
+
+`ReplayMemoryContext` 是已有冻结 Context 的只读恢复操作，复用 `SelectMemoryRequest`；调用方必须省略 Constitution，携带原完整 scope/run、原顺序 Situation refs 与原 evidence budget。Core 从该精确 Context 读取历史 Constitution，再核对原完整请求 hash；不存在返回 NotFound，来源／预算变化仍冲突。它不执行 Select、检索或角色 provider，不创建 Context、Activation 或 receipt，也不刷新 UNKNOWN SourceEvent。旧 Harness 在来源 UNKNOWN 后晚取 Current 并已冻结的 Context，只能保留其历史值，不能改写来源。`CoreStore` 同步暴露此只读方法，无 schema 变化。部署须先升级 Core，再切换单一 Chorai writer；并行旧新 writer 和 downgrade 重放不在兼容范围。
 
 ## 失败与降级
 

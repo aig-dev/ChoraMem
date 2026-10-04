@@ -38,6 +38,9 @@ const (
 	MemoryCoreObserveSourceEventProcedure = "/memory.v1.MemoryCore/ObserveSourceEvent"
 	// MemoryCoreSelectMemoryProcedure is the fully-qualified name of the MemoryCore's SelectMemory RPC.
 	MemoryCoreSelectMemoryProcedure = "/memory.v1.MemoryCore/SelectMemory"
+	// MemoryCoreReplayMemoryContextProcedure is the fully-qualified name of the MemoryCore's
+	// ReplayMemoryContext RPC.
+	MemoryCoreReplayMemoryContextProcedure = "/memory.v1.MemoryCore/ReplayMemoryContext"
 	// MemoryCoreRecordMemoryDeliveryProcedure is the fully-qualified name of the MemoryCore's
 	// RecordMemoryDelivery RPC.
 	MemoryCoreRecordMemoryDeliveryProcedure = "/memory.v1.MemoryCore/RecordMemoryDelivery"
@@ -50,6 +53,11 @@ const (
 type MemoryCoreClient interface {
 	ObserveSourceEvent(context.Context, *connect.Request[v1.ObserveSourceEventRequest]) (*connect.Response[v1.SourceEventReceipt], error)
 	SelectMemory(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
+	// Read an existing frozen Context without selecting or creating one.
+	// The caller supplies the original scope, run, ordered sources and budget;
+	// constitution must be absent. Core restores the stored Constitution and
+	// verifies the complete original request hash before returning its Context.
+	ReplayMemoryContext(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
 	RecordMemoryDelivery(context.Context, *connect.Request[v1.MemoryDeliveryReceipt]) (*connect.Response[v1.ReceiptAck], error)
 	ReportOutcome(context.Context, *connect.Request[v1.ReportOutcomeRequest]) (*connect.Response[v1.OutcomeReceipt], error)
 }
@@ -77,6 +85,12 @@ func NewMemoryCoreClient(httpClient connect.HTTPClient, baseURL string, opts ...
 			connect.WithSchema(memoryCoreMethods.ByName("SelectMemory")),
 			connect.WithClientOptions(opts...),
 		),
+		replayMemoryContext: connect.NewClient[v1.SelectMemoryRequest, v1.MemoryContext](
+			httpClient,
+			baseURL+MemoryCoreReplayMemoryContextProcedure,
+			connect.WithSchema(memoryCoreMethods.ByName("ReplayMemoryContext")),
+			connect.WithClientOptions(opts...),
+		),
 		recordMemoryDelivery: connect.NewClient[v1.MemoryDeliveryReceipt, v1.ReceiptAck](
 			httpClient,
 			baseURL+MemoryCoreRecordMemoryDeliveryProcedure,
@@ -96,6 +110,7 @@ func NewMemoryCoreClient(httpClient connect.HTTPClient, baseURL string, opts ...
 type memoryCoreClient struct {
 	observeSourceEvent   *connect.Client[v1.ObserveSourceEventRequest, v1.SourceEventReceipt]
 	selectMemory         *connect.Client[v1.SelectMemoryRequest, v1.MemoryContext]
+	replayMemoryContext  *connect.Client[v1.SelectMemoryRequest, v1.MemoryContext]
 	recordMemoryDelivery *connect.Client[v1.MemoryDeliveryReceipt, v1.ReceiptAck]
 	reportOutcome        *connect.Client[v1.ReportOutcomeRequest, v1.OutcomeReceipt]
 }
@@ -108,6 +123,11 @@ func (c *memoryCoreClient) ObserveSourceEvent(ctx context.Context, req *connect.
 // SelectMemory calls memory.v1.MemoryCore.SelectMemory.
 func (c *memoryCoreClient) SelectMemory(ctx context.Context, req *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error) {
 	return c.selectMemory.CallUnary(ctx, req)
+}
+
+// ReplayMemoryContext calls memory.v1.MemoryCore.ReplayMemoryContext.
+func (c *memoryCoreClient) ReplayMemoryContext(ctx context.Context, req *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error) {
+	return c.replayMemoryContext.CallUnary(ctx, req)
 }
 
 // RecordMemoryDelivery calls memory.v1.MemoryCore.RecordMemoryDelivery.
@@ -124,6 +144,11 @@ func (c *memoryCoreClient) ReportOutcome(ctx context.Context, req *connect.Reque
 type MemoryCoreHandler interface {
 	ObserveSourceEvent(context.Context, *connect.Request[v1.ObserveSourceEventRequest]) (*connect.Response[v1.SourceEventReceipt], error)
 	SelectMemory(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
+	// Read an existing frozen Context without selecting or creating one.
+	// The caller supplies the original scope, run, ordered sources and budget;
+	// constitution must be absent. Core restores the stored Constitution and
+	// verifies the complete original request hash before returning its Context.
+	ReplayMemoryContext(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error)
 	RecordMemoryDelivery(context.Context, *connect.Request[v1.MemoryDeliveryReceipt]) (*connect.Response[v1.ReceiptAck], error)
 	ReportOutcome(context.Context, *connect.Request[v1.ReportOutcomeRequest]) (*connect.Response[v1.OutcomeReceipt], error)
 }
@@ -147,6 +172,12 @@ func NewMemoryCoreHandler(svc MemoryCoreHandler, opts ...connect.HandlerOption) 
 		connect.WithSchema(memoryCoreMethods.ByName("SelectMemory")),
 		connect.WithHandlerOptions(opts...),
 	)
+	memoryCoreReplayMemoryContextHandler := connect.NewUnaryHandler(
+		MemoryCoreReplayMemoryContextProcedure,
+		svc.ReplayMemoryContext,
+		connect.WithSchema(memoryCoreMethods.ByName("ReplayMemoryContext")),
+		connect.WithHandlerOptions(opts...),
+	)
 	memoryCoreRecordMemoryDeliveryHandler := connect.NewUnaryHandler(
 		MemoryCoreRecordMemoryDeliveryProcedure,
 		svc.RecordMemoryDelivery,
@@ -165,6 +196,8 @@ func NewMemoryCoreHandler(svc MemoryCoreHandler, opts ...connect.HandlerOption) 
 			memoryCoreObserveSourceEventHandler.ServeHTTP(w, r)
 		case MemoryCoreSelectMemoryProcedure:
 			memoryCoreSelectMemoryHandler.ServeHTTP(w, r)
+		case MemoryCoreReplayMemoryContextProcedure:
+			memoryCoreReplayMemoryContextHandler.ServeHTTP(w, r)
 		case MemoryCoreRecordMemoryDeliveryProcedure:
 			memoryCoreRecordMemoryDeliveryHandler.ServeHTTP(w, r)
 		case MemoryCoreReportOutcomeProcedure:
@@ -184,6 +217,10 @@ func (UnimplementedMemoryCoreHandler) ObserveSourceEvent(context.Context, *conne
 
 func (UnimplementedMemoryCoreHandler) SelectMemory(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error) {
 	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("memory.v1.MemoryCore.SelectMemory is not implemented"))
+}
+
+func (UnimplementedMemoryCoreHandler) ReplayMemoryContext(context.Context, *connect.Request[v1.SelectMemoryRequest]) (*connect.Response[v1.MemoryContext], error) {
+	return nil, connect.NewError(connect.CodeUnimplemented, errors.New("memory.v1.MemoryCore.ReplayMemoryContext is not implemented"))
 }
 
 func (UnimplementedMemoryCoreHandler) RecordMemoryDelivery(context.Context, *connect.Request[v1.MemoryDeliveryReceipt]) (*connect.Response[v1.ReceiptAck], error) {

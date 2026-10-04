@@ -7,9 +7,10 @@ import (
 )
 
 var (
-	ErrInvalidSelectRequest = errors.New("invalid SelectMemory request")
-	ErrRunConflict          = errors.New("run ref already identifies a different MemoryContext request")
-	ErrAmbiguousMemoryRef   = errors.New("memory ref resolves to multiple semantic kinds")
+	ErrInvalidSelectRequest  = errors.New("invalid SelectMemory request")
+	ErrRunConflict           = errors.New("run ref already identifies a different MemoryContext request")
+	ErrMemoryContextNotFound = errors.New("frozen MemoryContext not found")
+	ErrAmbiguousMemoryRef    = errors.New("memory ref resolves to multiple semantic kinds")
 )
 
 // Constitution is an external normative baseline, not writable Memory.
