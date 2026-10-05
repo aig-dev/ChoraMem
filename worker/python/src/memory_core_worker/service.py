@@ -252,6 +252,7 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
         if len(tagged_text.encode("utf-8")) > MAX_TAGGED_TEXT_BYTES:
             _diagnostic("primary", "output_budget")
             tagged_text = ""
+        primary_text = tagged_text  # Uncommitted text, never coverage or authority.
         tagged_text = _deduplicate_basis(tagged_text, request.allowed_basis_refs)
         if not _primary_change_operations_are_tagged(tagged_text):
             # A malformed primary result has no coverage or commit authority.
@@ -272,6 +273,12 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
         formation_input = ""
         if formation_material is not None:
             formation_input = build_disposition_formation_input(formation_material)
+            proposed = _matching_primary_formation_text(request, formation_material, primary_text)
+            if proposed:
+                checked_input = build_disposition_formation_input(formation_material, primary_text=proposed)
+                # Prefer the complete causal evidence to this optional model text.
+                if len(checked_input.encode("utf-8")) <= self._max_model_input_bytes:
+                    formation_input = checked_input
             if len(formation_input.encode("utf-8")) > self._max_model_input_bytes:
                 _diagnostic("formation", "input_budget")
                 formation_material = None
@@ -584,6 +591,51 @@ def _primary_change_operations_are_tagged(text: str) -> bool:
             }:
                 return False
     return True
+
+
+def _matching_primary_formation_text(request, material, text: str) -> str:
+    """Quote one prior sentence for the same group; never repair its operation.
+
+    Missing-opcode output has no commit/coverage authority. Its bounded text
+    may still be checked as untrusted data by the independent focused call.
+    """
+    lines = [line.strip(_GO_TRIM_SPACE) for line in text.split("\n")]
+    starts = [i for i, line in enumerate(lines) if line == "TARGET"]
+    if not starts or any(lines[:starts[0]]):
+        return ""
+    starts.append(len(lines))
+    known_refs = set(request.allowed_basis_refs) | set(request.allowed_target_refs)
+    for episode in request.evidence.episodes:
+        known_refs.update((episode.episode_ref, episode.session_ref))
+        for source in episode.sources:
+            known_refs.update((source.source_ref, source.actor_ref))
+    known_refs.discard("")
+    bodies = []
+    for left, right in zip(starts, starts[1:]):
+        block = [line for line in lines[left:right] if line]
+        if (len(block) < 8 or block[:5] != [
+                "TARGET", "NEW_DISPOSITION", "APPLICATION", material.application, "CHANGE"]
+                or block.count("BASIS") != 1):
+            continue
+        boundary = block.index("BASIS")
+        change, inline = _split_operation(block[5])
+        if change == "TEXT":
+            if inline is not None and boundary != 6:
+                continue
+            content = [inline] if inline is not None else block[6:boundary]
+        elif change in {"ADAPT", "KEEP", "REENACT", "INHIBIT"}:
+            continue
+        else:
+            content = block[5:boundary]  # Text to check; no guessed operation.
+        basis = block[boundary + 1:]
+        if (len(content) != 1 or not content[0]
+                or len(content[0].encode("utf-8")) > 4096
+                or len(basis) != len(set(basis))
+                or set(basis) != set(material.basis_refs)
+                or any(ref in content[0] for ref in known_refs)):
+            continue
+        bodies.append(content[0])
+    return bodies[0] if len(bodies) == 1 else ""
 
 
 def _recollection_coverage(

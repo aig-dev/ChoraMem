@@ -181,6 +181,10 @@ Delivery，Core 可再次提供其精确 Episode/Outcome 对。Target 内的 REC
 形成材料分别引用回应前的 USER Situation、既有 AgentAct 和后来的 non-Agent Outcome；后者报告
 的回答或后续结果不能被压缩成原 AgentAct 当时已经掌握的信息。标签只说明既有因果角色，不添加
 证据或改变 Basis 资格。
+focused 调用可对照第一轮一个同组暂态句子检查被概括掉的意图、避免动作和等待边界。该句子必须
+对应同一 application 和精确 Episode/Outcome 组，去掉 refs 后只作为引用数据；缺 opcode 的主输出
+仍不具 coverage 或提交权威。错组、重复／额外 Basis、ADAPT、多个候选、多行、超预算或含真实 refs
+的句子不展示。可选句子超出输入预算时保留完整证据，调用次数和最终绑定 Basis 不变。
 Disposition 演化、精确去重与原子提交仍由统一路径和 Core 处理。因此每窗口的
 生成式后台调用上限为四次，在线 Select 仍为零次。
 

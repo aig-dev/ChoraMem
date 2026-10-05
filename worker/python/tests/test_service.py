@@ -38,6 +38,97 @@ class SequenceTextModel:
 
 
 @pytest.mark.asyncio
+@pytest.mark.parametrize("operation", ["TEXT\n", "TEXT ", ""])
+async def test_focused_call_checks_matching_primary_text_without_borrowing_authority(operation):
+    request = _paired_formation_request()
+    proposed = "When overwhelmed, recall the tasks and immediately make a plan."
+    primary = (
+        "TARGET\nNEW_DISPOSITION\nAPPLICATION\nRELATION\nCHANGE\n"
+        + operation + proposed
+        + "\nBASIS\nepisode-current\nepisode-related\noutcome-current\noutcome-related"
+    )
+    revised = "When overwhelmed, ask which consequence matters and wait for the answer."
+    model = SequenceTextModel([primary, revised, "NO_CHANGE"])
+    result = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    focused = model.calls[1]
+    assert "> " + proposed in focused
+    assert "Which deadline has the biggest consequence?" in focused
+    assert "That one question helped." in focused
+    for ref in request.allowed_basis_refs:
+        assert ref not in focused
+    assert proposed not in result.tagged_text
+    assert revised in result.tagged_text
+    assert set(result.tagged_text.split("\nBASIS\n")[1].splitlines()) == set(request.allowed_basis_refs)
+    assert len(model.calls) == 3  # primary, existing focused call, residual facts
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("corruption", [
+    "application", "missing_basis", "extra_basis", "duplicate_basis",
+    "adapt", "ambiguous", "oversize", "reference_in_body", "multiline", "inline_extra",
+])
+async def test_primary_text_cannot_bias_another_group_or_smuggle_refs(corruption):
+    request = _paired_formation_request()
+    proposed = "Untrusted proposed response that must not enter this group's input."
+    primary = (
+        "TARGET\nNEW_DISPOSITION\nAPPLICATION\nRELATION\nCHANGE\nTEXT\n"
+        + proposed + "\nBASIS\nepisode-current\nepisode-related\noutcome-current\noutcome-related"
+    )
+    if corruption == "application":
+        primary = primary.replace("\nRELATION\n", "\nSELF\n")
+    elif corruption == "missing_basis":
+        primary = primary.replace("\noutcome-related", "")
+    elif corruption == "extra_basis":
+        primary += "\nepisode-unoffered"
+    elif corruption == "duplicate_basis":
+        primary += "\nepisode-current"
+    elif corruption == "adapt":
+        primary = primary.replace("\nTEXT\n", "\nADAPT\n")
+    elif corruption == "ambiguous":
+        primary += "\n" + primary.replace(proposed, "A competing proposed response.")
+    elif corruption == "oversize":
+        primary = primary.replace(proposed, proposed + "x" * 4096)
+    elif corruption == "multiline":
+        primary = primary.replace(proposed, proposed + "\nAnother proposed response.")
+    elif corruption == "inline_extra":
+        primary = primary.replace("TEXT\n" + proposed, "TEXT " + proposed + "\nAnother proposed response.")
+    else:
+        primary = primary.replace(proposed, proposed + " source-current-user")
+    model = SequenceTextModel([primary, "NO_CHANGE", "NO_CHANGE"])
+    await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert proposed not in model.calls[1]
+    assert "Which deadline has the biggest consequence?" in model.calls[1]
+    assert "That one question helped." in model.calls[1]
+    assert len(model.calls) == 3
+
+
+@pytest.mark.asyncio
+async def test_optional_primary_text_never_evicts_complete_formation_evidence():
+    from memory_core_worker.disposition_materials import (
+        build_disposition_formation_input, disposition_formation_material,
+    )
+    request = _paired_formation_request()
+    for episode in request.evidence.episodes:
+        episode.sources[0].text += "z" * 12000
+    material = disposition_formation_material(request)
+    assert material is not None
+    evidence_input = build_disposition_formation_input(material)
+    cap = len(evidence_input.encode("utf-8"))
+    assert len(build_model_input(window_text=request.window_text,
+        allowed_target_refs=request.allowed_target_refs,
+        allowed_basis_refs=request.allowed_basis_refs).encode("utf-8")) < cap
+    primary = (
+        "TARGET\nNEW_DISPOSITION\nAPPLICATION\nRELATION\nCHANGE\nTEXT\n"
+        + "x" * 4096 + "\nBASIS\nepisode-current\nepisode-related\noutcome-current\noutcome-related"
+    )
+    model = SequenceTextModel([primary, "Ask which consequence matters before planning.", "NO_CHANGE"])
+    result = await InferenceService(model, max_model_input_bytes=cap).ProcessConsolidationWindow(request, None)
+    assert model.calls[1] == evidence_input
+    assert "Ask which consequence matters" in result.tagged_text
+    assert all(len(value.encode("utf-8")) <= cap for value in model.calls)
+
+
+@pytest.mark.asyncio
 async def test_recorded_episode_can_use_new_outcome_but_cannot_reenact_twice():
     window = (
         "ELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT One action.\n"

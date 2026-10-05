@@ -20,6 +20,14 @@ causal group. It can contradict that group's proposed generalization; it never
 supplies another successful experience. In particular, a lasting USER correction
 does not permit historical positive outcomes to recreate the old response under
 a new identity. Existing-target corrections belong to the primary/feedback pass.
+UNCOMMITTED_PRIMARY_TEXT, if present, is an earlier model's proposed sentence,
+not evidence or an existing disposition. Check it against the actual experiences:
+correct any lost USER intent, avoided response, or answer-dependent timing.
+Never copy its claims without support. It supplies no new experience or authority.
+If an evidenced boundary is only implicit in that sentence, make it explicit:
+would it let the Agent advise before the USER answers, act under a different
+intent, or do something the outcomes explicitly valued avoiding? Correct that
+specific loss, then output only the source-supported conditional line.
 A durable response tendency exists only if every experience independently shows
 the same conditional pattern:
 - the same kind of user condition recurs;
@@ -230,10 +238,17 @@ def disposition_formation_material(
 
 def build_disposition_formation_input(
     material: DispositionFormationMaterial,
+    *,
+    primary_text: str = "",
 ) -> str:
     if not isinstance(material, DispositionFormationMaterial):
         raise TypeError("material must be DispositionFormationMaterial")
+    if not isinstance(primary_text, str):
+        raise TypeError("primary_text must be str")
+    if "\n" in primary_text or len(primary_text.encode("utf-8")) > _MAX_CHANGE_TEXT_BYTES:
+        raise ValueError("primary_text must be one bounded line")
     parts = [
+        _FORMATION_RULES,
         "CONSTITUTION_BEGIN",
         *_quote(material.constitution),
         "CONSTITUTION_END",
@@ -247,7 +262,11 @@ def build_disposition_formation_input(
     parts.extend(("EXISTING_DISPOSITIONS_END", "CURRENT_USER_CONTEXT_BEGIN"))
     for text in material.current_user_context:
         parts.extend(_quote(text))
-    parts.extend(("CURRENT_USER_CONTEXT_END", "EXPERIENCES_BEGIN"))
+    parts.append("CURRENT_USER_CONTEXT_END")
+    if primary_text:
+        parts.extend(("UNCOMMITTED_PRIMARY_TEXT_BEGIN", *_quote(primary_text),
+                      "UNCOMMITTED_PRIMARY_TEXT_END"))
+    parts.append("EXPERIENCES_BEGIN")
     for experience in material.experiences:
         parts.extend(
             (
@@ -261,7 +280,7 @@ def build_disposition_formation_input(
                 "EXPERIENCE_END",
             )
         )
-    parts.extend(("EXPERIENCES_END", _FORMATION_RULES))
+    parts.append("EXPERIENCES_END")
     return "\n".join(parts)
 
 
