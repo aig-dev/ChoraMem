@@ -12,7 +12,7 @@ from memory_core_eval.memory_effect_data import load_memory_effect
 
 
 DATA = load_memory_effect(Path(__file__).parents[3] / "eval/cases/memory-effect-causal-v1.json")
-RUNTIME = {"model": "configured-model", "model_revision": "alias, build unavailable", "base_url": "https://example.test", "temperature": 0, "thinking": "disabled", "provider_max_retries": 0, "provider_completion_attempts": 1, "provider_timeout_seconds": 35, "worker_rpc_timeout_seconds": 120, "tokenizer": "cl100k_base", "worker_output_tokens": 8192, "answer_output_tokens": 512, "judge_output_tokens": 512, "memory_tokens": 768, "foundation_tokens": 544, "tendency_tokens": 192, "episode_evidence_bytes": 8192}
+RUNTIME = {"model": "configured-model", "model_revision": "alias, build unavailable", "base_url": "https://example.test", "temperature": 0, "thinking": "disabled", "provider_max_retries": 0, "provider_completion_attempts": 1, "provider_timeout_seconds": 35, "worker_rpc_timeout_seconds": 120, "tokenizer": "cl100k_base", "worker_output_tokens": 8192, "answer_output_tokens": 1024, "judge_output_tokens": 512, "memory_tokens": 768, "foundation_tokens": 544, "tendency_tokens": 192, "episode_evidence_bytes": 8192}
 SOURCES = {"eval/harness.py": "a" * 64}
 
 
@@ -206,3 +206,35 @@ def test_worker_rpc_inventory_rejects_hidden_attempts_and_unbound_model_calls():
         api.validate_rpc_inventory([start], [], [], [])
     with pytest.raises(ValueError, match="RPC"):
         api.validate_rpc_inventory([start], [done], [], [{"rpc_ref": "unknown"}])
+
+
+@pytest.mark.asyncio
+async def test_two_real_messages_in_one_session_keep_distinct_source_and_run(tmp_path):
+    """A delayed probe cannot overwrite the frozen source of the earlier run."""
+    api = _api()
+    from test_memory_effect_runner import MemoryBoundary
+
+    class FrozenSourceBoundary(MemoryBoundary):
+        def __init__(self):
+            super().__init__()
+            self.sources = {}
+
+        async def observe_source_event(self, request):
+            key = (request.source_event.scope.SerializeToString(), request.source_event.source_ref)
+            content = request.source_event.SerializeToString()
+            if key in self.sources and self.sources[key] != content:
+                raise ValueError("physical source snapshot conflict")
+            self.sources[key] = content
+            return await super().observe_source_event(request)
+
+    class Model:
+        async def complete(self, **_kwargs): return "实际回复"
+
+    memory = FrozenSourceBoundary()
+    model = api.CapturedEffectModel(Model(), tmp_path)
+    scope = api.effect_scope("late-test", "f8", "one-conversation")
+    first = await api.run_effect_probe(instance=DATA.instances[0], request="第一条真实消息", evaluation_ref="late-test", suffix="first", memory=memory, model=model, token_count=len, scope=scope)
+    second = await api.run_effect_probe(instance=DATA.instances[0], request="之后的另一条真实消息", evaluation_ref="late-test", suffix="later", memory=memory, model=model, token_count=len, scope=scope)
+    assert first["scope"] == second["scope"]
+    assert first["run_ref"] != second["run_ref"]
+    assert first["situation_source_event_ref"] != second["situation_source_event_ref"]

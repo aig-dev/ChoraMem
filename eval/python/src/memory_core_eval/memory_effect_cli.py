@@ -36,7 +36,7 @@ from .personamem_live import ChatTextModel, DatabaseProbe
 COMPARISONS = tuple(combinations(ARMS, 2))
 EFFECT_PURPOSE = contextvars.ContextVar("effect_purpose", default="harness")
 EFFECT_RPC = contextvars.ContextVar("effect_rpc", default="")
-_BUDGETS = {"temperature": 0, "thinking": "disabled", "provider_max_retries": 0, "provider_completion_attempts": 1, "provider_timeout_seconds": 35, "worker_rpc_timeout_seconds": 120, "tokenizer": "cl100k_base", "worker_output_tokens": 8192, "answer_output_tokens": 512, "judge_output_tokens": 512, "memory_tokens": 768, "foundation_tokens": 544, "tendency_tokens": 192, "episode_evidence_bytes": 8192}
+_BUDGETS = {"temperature": 0, "thinking": "disabled", "provider_max_retries": 0, "provider_completion_attempts": 1, "provider_timeout_seconds": 35, "worker_rpc_timeout_seconds": 120, "tokenizer": "cl100k_base", "worker_output_tokens": 8192, "answer_output_tokens": 1024, "judge_output_tokens": 512, "memory_tokens": 768, "foundation_tokens": 544, "tendency_tokens": 192, "episode_evidence_bytes": 8192}
 
 
 def json_sha256(value: object) -> str:
@@ -282,8 +282,8 @@ def _learned_content(context: pb.MemoryContext, token_count) -> dict:
 async def run_effect_probe(*, instance: DelayedSeedInstance, request: str, evaluation_ref: str, suffix: str, memory: Any, model: CapturedEffectModel, token_count, scope: pb.MemoryScope | None = None, selected: pb.MemoryContext | None = None, source_ref: str | None = None, scripted_act: str | None = None) -> dict:
     """One subsequent real response, or an explicitly labelled semantic fixture."""
     scope = scope or effect_scope(evaluation_ref, instance.instance_ref, suffix)
-    source_ref = source_ref or scope.session_ref + ":situation"
-    run = selected.run_ref if selected is not None else scope.session_ref + ":run"
+    source_ref = source_ref or scope.session_ref + ":" + suffix + ":situation"
+    run = selected.run_ref if selected is not None else scope.session_ref + ":" + suffix + ":run"
     constitution = effect_constitution(instance.persona_text)
     user = "memory-effect-user:" + sha256_text(scope.relationship_ref)[:24]
     source = pb.SourceEvent(scope=scope, text=request, source_ref=source_ref, actor_kind=pb.SOURCE_ACTOR_KIND_USER, actor_ref=user, constitution=constitution)

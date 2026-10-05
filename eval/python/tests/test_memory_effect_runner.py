@@ -78,7 +78,7 @@ async def _run(memory=None, model=None):
     class Model:
         async def complete(self, *, instructions, input_text, max_output_tokens):
             assert input_text == "CURRENT_REQUEST\n" + DATA.instances[0].current_request
-            assert max_output_tokens == 512
+            assert max_output_tokens == 1024
             assert DATA.instances[0].persona_text in instructions
             memory.events.append("answer")
             return "A real completed alternative " + str(memory.events.count("answer"))

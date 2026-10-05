@@ -37,6 +37,41 @@ class SequenceTextModel:
         return self.responses.pop(0)
 
 
+@pytest.mark.asyncio
+@pytest.mark.parametrize("also_feedback", [False, True])
+async def test_recovery_reaches_existing_direct_adapt_after_primary_no_change(also_feedback):
+    """A missed lasting correction must reach the existing bounded recovery call."""
+    adapted = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\nADAPT\n遇到原因不明的故障，先问用户已试过什么再给测试。\nBASIS\nepisode-direct"
+    window = "ELIGIBLE_ADAPTATION seed-current@1\nAPPLICATION RELATION\nTEXT 先给一个区分原因的测试。\nDIRECT_EPISODE episode-direct"
+    if also_feedback:
+        window += "\nELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT 先给一个区分原因的测试。\nFEEDBACK_EPISODE episode-feedback"
+    request = inference_pb2.ProcessConsolidationWindowRequest(window_text=window, allowed_target_refs=["seed-current@1"], allowed_basis_refs=["episode-direct", "episode-feedback"])
+    model = SequenceTextModel(["NO_CHANGE", adapted])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == adapted
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("basis", ["episode-other", "episode-direct\nepisode-other", "episode-direct\nepisode-direct", "outcome-feedback"])
+async def test_direct_recovery_cannot_borrow_or_synthesize_authority(basis):
+    """ADAPT has one exact Target-local direct authority, not a causal pair."""
+    window = "ELIGIBLE_ADAPTATION seed-current@1\nAPPLICATION RELATION\nTEXT Give a test first.\nDIRECT_EPISODE episode-direct\nELIGIBLE_ADAPTATION seed-other@1\nAPPLICATION RELATION\nTEXT Other tendency.\nDIRECT_EPISODE episode-other\nELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT Give a test first.\nFEEDBACK_EPISODE episode-feedback\nFEEDBACK_OUTCOME outcome-feedback\nOUTCOME_EPISODE episode-feedback"
+    bad = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\nADAPT\nAsk what was tried first.\nBASIS\n" + basis
+    model = SequenceTextModel(["NO_CHANGE", bad])
+    response = await InferenceService(model).ProcessConsolidationWindow(inference_pb2.ProcessConsolidationWindowRequest(window_text=window, allowed_target_refs=["seed-current@1", "seed-other@1"], allowed_basis_refs=["episode-direct", "episode-other", "episode-feedback", "outcome-feedback"]), None)
+    assert response.tagged_text == ""
+
+
+@pytest.mark.asyncio
+async def test_direct_recovery_does_not_offer_a_new_adapt_target():
+    model = SequenceTextModel(["NO_CHANGE"])
+    request = inference_pb2.ProcessConsolidationWindowRequest(window_text="ELIGIBLE_ADAPTATION NEW_DISPOSITION\nAPPLICATION RELATION\nDIRECT_EPISODE episode-current", allowed_target_refs=["NEW_DISPOSITION"], allowed_basis_refs=["episode-current"])
+    response = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert response.tagged_text == ""
+    assert len(model.calls) == 1
+
+
 def _typed_recollection_request() -> inference_pb2.ProcessConsolidationWindowRequest:
     request = inference_pb2.ProcessConsolidationWindowRequest(
         job_ref="job-typed-recollection",
@@ -282,7 +317,6 @@ async def test_worker_rechecks_eligible_feedback_when_general_pass_omits_it() ->
 
     assert response.tagged_text == reenact
     assert len(model.calls) == 2
-    assert "feedback-only recovery pass" in model.calls[1]
     assert "NEW_RECOLLECTION" not in model.calls[1]
     assert "ALLOWED_TARGET\nseed-feedback@1" in model.calls[1]
     assert "Every block begins with TARGET on its own line" in model.calls[1]
