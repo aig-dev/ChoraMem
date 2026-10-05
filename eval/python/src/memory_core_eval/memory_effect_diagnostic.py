@@ -17,7 +17,7 @@ from .memory_effect_data import _fields, _object, _sessions, _text, _texts, memo
 
 PROTOCOL = "memory-effect-diagnostic-v1"
 GRADER = "memory-effect-clause-pair-v1"
-_GRADE_OUTPUT_TRANSPORT = "plain JSON or one complete json Markdown fence; exact payload schema unchanged"
+_GRADE_OUTPUT_TRANSPORT = "plain JSON or one complete json Markdown fence; model evaluates semantic checks; exact literal absence template is computed from quoted responses; full ordered flags are bound to both"
 _GRADER_CONTRACT = {
     "protocol": GRADER, "calibration_required": 8,
     "positions": ["forward", "reverse"],
@@ -168,20 +168,50 @@ def validate_diagnostic_manifest(manifest: Mapping, data: DiagnosticData, *, run
 
 
 def build_diagnostic_pair_prompt(*, current_request: str, checks: Sequence[str], response_a: str, response_b: str) -> tuple[str, str]:
-    if not checks or any(not isinstance(c, str) or not c.strip() for c in checks):
-        raise ValueError("diagnostic checks must be complete")
+    model_checks = _modeled_checks(checks)
     # JSON mode also needs a concrete format example. Its arbitrary values are
     # identical across positions and depend only on count, never expected labels.
-    example = [index % 2 == 0 for index in range(len(checks))]
+    example = [index % 2 == 0 for index in range(len(model_checks))]
     instructions = _JUDGE_SYSTEM + (
         "\nThis json example shows syntax and array length only. Its arbitrary values\n"
         "are not judgments; evaluate every quoted response against the actual checks.\n"
         + json.dumps({"a": example, "b": example})
     )
     return instructions, json.dumps({
-        "current_request": _text(current_request, "current_request"), "checks": list(checks),
+        "current_request": _text(current_request, "current_request"), "checks": model_checks,
         "response_a": _text(response_a, "response_a"), "response_b": _text(response_b, "response_b"),
     }, ensure_ascii=False, sort_keys=True)
+
+
+def _literal_absence_text(check: str) -> str | None:
+    # Compile only this complete, unambiguous criterion template. All other
+    # natural-language requirements remain model judgments, without guessing.
+    match = re.fullmatch(r"正文不能出现编号原值([^\r\n。]+)。", check)
+    return match[1] if match and match[1].strip() else None
+
+
+def _modeled_checks(checks: Sequence[str]) -> list[str]:
+    if not checks or any(not isinstance(c, str) or not c.strip() for c in checks):
+        raise ValueError("diagnostic checks must be complete")
+    modeled = [check for check in checks if _literal_absence_text(check) is None]
+    if not modeled:
+        raise ValueError("diagnostic pair requires at least one modeled check")
+    return modeled
+
+
+def evaluate_diagnostic_pair(output: str, *, checks: Sequence[str], response_a: str, response_b: str) -> tuple[tuple[bool, ...], tuple[bool, ...]]:
+    modeled = _modeled_checks(checks)
+    parsed = parse_diagnostic_pair(output, check_count=len(modeled))
+    responses = (_text(response_a, "response_a"), _text(response_b, "response_b"))
+    result = []
+    for flags, response in zip(parsed, responses, strict=True):
+        remaining = iter(flags)
+        result.append(tuple(
+            next(remaining) if (literal := _literal_absence_text(check)) is None
+            else literal not in response
+            for check in checks
+        ))
+    return result[0], result[1]
 
 
 def parse_diagnostic_pair(output: str, *, check_count: int) -> tuple[tuple[bool, ...], tuple[bool, ...]]:
@@ -237,8 +267,8 @@ def validate_diagnostic_judgments(instance: DelayedSeedInstance, checks: Sequenc
         if (row.get("response_a_sha256"), row.get("response_b_sha256")) != (sha256_text(responses[a]), sha256_text(responses[b])):
             raise ValueError("diagnostic judge response body drift")
         flags = _booleans(row.get("a"), len(checks)), _booleans(row.get("b"), len(checks))
-        if flags != parse_diagnostic_pair(call.get("output"), check_count=len(checks)):
-            raise ValueError("diagnostic judge flags differ from actual output")
+        if flags != evaluate_diagnostic_pair(call.get("output"), checks=checks, response_a=responses[a], response_b=responses[b]):
+            raise ValueError("diagnostic judge flags differ from actual output/literal predicates")
         indexed[key] = flags
     if set(indexed) != {(pair, d) for pair in comparisons for d in ("forward", "reverse")}:
         raise ValueError("diagnostic incomplete pair/position denominator")
@@ -295,7 +325,7 @@ def validate_calibration_calls(data: DiagnosticData, legacy: Sequence[Mapping], 
             if (row.get("response_a_sha256"), row.get("response_b_sha256")) != (sha256_text(a), sha256_text(b)):
                 raise ValueError("calibration known response drift")
             try:
-                actual = parse_pairwise_token(call.get("output")) if grader == "legacy" else parse_diagnostic_pair(call.get("output"), check_count=len(case.checks))
+                actual = parse_pairwise_token(call.get("output")) if grader == "legacy" else evaluate_diagnostic_pair(call.get("output"), checks=case.checks, response_a=a, response_b=b)
             except ValueError:
                 if row.get("error_class") != "ValueError" or any(k in row for k in ("token", "a", "b")):
                     raise ValueError("calibration malformed output must remain an explicit failure")
@@ -486,7 +516,7 @@ async def run_public_diagnostic(*, data: DiagnosticData, evaluation_ref: str, me
                     if grader == "legacy":
                         record["token"] = parse_pairwise_token(value)
                     else:
-                        record["a"], record["b"] = map(list, parse_diagnostic_pair(value, check_count=len(case.checks)))
+                        record["a"], record["b"] = map(list, evaluate_diagnostic_pair(value, checks=case.checks, response_a=a, response_b=b))
                 except ValueError:
                     record["error_class"] = "ValueError"
                 (legacy if grader == "legacy" else calibrated).append(record)
@@ -536,7 +566,7 @@ async def run_public_diagnostic(*, data: DiagnosticData, evaluation_ref: str, me
                     value = await model.complete(instructions=instructions, input_text=prompt, max_output_tokens=512, json_output=True)
                 finally:
                     EFFECT_PURPOSE.reset(token)
-                flags_a, flags_b = parse_diagnostic_pair(value, check_count=3)
+                flags_a, flags_b = evaluate_diagnostic_pair(value, checks=data.expectations[ref]["checks"], response_a=responses[a], response_b=responses[b])
                 judgments.append({"left": left, "right": right, "direction": direction, "a_mode": a, "b_mode": b, "a": list(flags_a), "b": list(flags_b), "attempt_ref": model.last_call["attempt_ref"], "request_sha256": model.last_call["request_sha256"], "response_a_sha256": sha256_text(responses[a]), "response_b_sha256": sha256_text(responses[b])})
                 append_jsonl(output / "judgments.jsonl", {"case_ref": ref, **judgments[-1]})
         before_feedback = await settle(prepared.scope, prepared.expected_episodes + 4)

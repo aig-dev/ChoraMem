@@ -110,6 +110,56 @@ def test_json_grade_shape_example_is_independent_of_response_and_check_meaning()
     assert json.loads(first.splitlines()[-1]) == json.loads(second.splitlines()[-1])
 
 
+@pytest.mark.parametrize("literal", ["R4橡叶", "K7-β", "🤍23"])
+def test_literal_absence_is_computed_from_quoted_response_not_model_flags(literal):
+    api = _api()
+    checks = [f"正文不能出现编号原值{literal}。", "保存以后不使用该编号的约束。"]
+    bad, good = f"以后不使用编号{literal}。", "以后不使用这个编号。"
+    instructions, prompt = api.build_diagnostic_pair_prompt(
+        current_request="以后不用该编号", checks=checks,
+        response_a=bad, response_b=good,
+    )
+    assert json.loads(prompt)["checks"] == checks[1:]
+    assert len(json.loads(instructions.splitlines()[-1])["a"]) == 1
+    assert api.evaluate_diagnostic_pair(
+        '{"a":[true],"b":[true]}', checks=checks,
+        response_a=bad, response_b=good,
+    ) == ((False, True), (True, True))
+    assert api.evaluate_diagnostic_pair(
+        '{"a":[true],"b":[true]}', checks=checks,
+        response_a=good, response_b=bad,
+    ) == ((True, True), (False, True))
+
+
+def test_unrecognized_absence_wording_remains_model_evaluated():
+    api = _api()
+    checks = ["不要重复敏感含义，而非只检查某一个字面编号。"]
+    _, prompt = api.build_diagnostic_pair_prompt(
+        current_request="request", checks=checks, response_a="a", response_b="b",
+    )
+    assert json.loads(prompt)["checks"] == checks
+    assert api.evaluate_diagnostic_pair(
+        '{"a":[false],"b":[true]}', checks=checks,
+        response_a="a", response_b="b",
+    ) == ((False,), (True,))
+
+
+def test_literal_predicate_does_not_promote_a_failed_semantic_check():
+    assert _api().evaluate_diagnostic_pair(
+        '{"a":[false],"b":[true]}',
+        checks=["正文不能出现编号原值Q3枫叶。", "保存未来不使用的约束。"],
+        response_a="没有这个原值", response_b="以后不使用该编号",
+    ) == ((True, False), (True, True))
+
+
+def test_literal_only_pair_cannot_fabricate_an_expected_model_attempt():
+    with pytest.raises(ValueError):
+        _api().build_diagnostic_pair_prompt(
+            current_request="request", checks=["正文不能出现编号原值X3。"],
+            response_a="a", response_b="b",
+        )
+
+
 @pytest.mark.parametrize("output", [
     '{"a":[true],"b":[true],"winner":"A"}',
     '{"a":[1],"b":[false]}',
@@ -269,7 +319,8 @@ def _calibration_bundle():
                     output = api.diagnostic_verdict(*flags)
                 else:
                     instructions, prompt = api.build_diagnostic_pair_prompt(current_request=case.current_request, checks=case.checks, response_a=a, response_b=b)
-                    output = json.dumps(dict(a=flags[0], b=flags[1]))
+                    indices = [case.checks.index(c) for c in json.loads(prompt)["checks"]]
+                    output = json.dumps(dict(a=[flags[0][i] for i in indices], b=[flags[1][i] for i in indices]))
                 attempt = f"{case.case_ref}:{grader}:{direction}"
                 request = effect_request_sha256(instructions, prompt, 512, json_output=grader == api.GRADER)
                 calls[attempt] = dict(instructions=instructions, input_text=prompt, max_output_tokens=512, json_output=grader == api.GRADER, request_sha256=request, output=output)
@@ -281,6 +332,14 @@ def _calibration_bundle():
                     row.update(a=list(flags[0]), b=list(flags[1]))
                     rows.append(row)
     return data, legacy, rows, calls
+
+
+def test_calibration_literal_flag_cannot_be_forged_as_a_model_judgment():
+    data, legacy, rows, calls = _calibration_bundle()
+    row = next(r for r in rows if r["case_ref"] == "k8" and r["direction"] == "reverse")
+    row["a"][1] = True
+    with pytest.raises(ValueError):
+        _api().validate_calibration_calls(data, legacy, rows, calls)
 
 
 @pytest.mark.parametrize("mutation", [
@@ -379,7 +438,10 @@ async def test_complete_public_diagnostic_summary_preserves_failed_semantics_and
             if parts[1] in known:
                 case = known[parts[1]]
                 flags = (case.expected_left, case.expected_right) if parts[-1] == "forward" else (case.expected_right, case.expected_left)
-                return api.diagnostic_verdict(*flags) if parts[2] == "legacy" else json.dumps(dict(a=flags[0], b=flags[1]))
+                if parts[2] == "legacy":
+                    return api.diagnostic_verdict(*flags)
+                indices = [case.checks.index(c) for c in json.loads(input_text)["checks"]]
+                return json.dumps(dict(a=[flags[0][i] for i in indices], b=[flags[1][i] for i in indices]))
             if "judge" in parts:
                 return '{"a":[true,true,true],"b":[true,true,true]}'
             return "Completed provider fixture."
