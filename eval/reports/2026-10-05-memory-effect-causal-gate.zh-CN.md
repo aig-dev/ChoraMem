@@ -240,3 +240,5 @@ d1的完整公开倾向与实际先问／等待成功；同一轨迹还形成来
 追加文件位于common-verification/live/capacity-v2-65cf5701dba4/：semantic-reviews.complete-checks-v3.json SHA256d7eff4efe652ff7037aceb52bc74847e0bb38e2b4c2a97779db29b2f9ac77055，reviewed-summary.complete-checks-v3.json SHA25601ac6def420842e2c7695678ee91a073ca2f93e3c0d506b5d5fe901cd7d814c6，complete-checks-v3-provenance.json SHA256d9bf61235f2d8bd6699f8c66d332a265552aaf6fe1c948a9fdddd754734beeba。
 
 完成范围限于最初goal的五方向具体修复、生产生命周期smoke、完整可辨识诊断和诚实效果结论。保留回应遵从／纠正延迟／同义去重／初窗口事实遗漏的限制，高模式公开run仍FAILED_INCOMPLETE且拒绝生产推荐，所有实验不可混分母。没有确认自然分布长期收益、通用模型遵从或产品整体优越性。Core-first单writer升级、forget仅派生不使用而非物理清除、reviewer只读权限的边界均作为final Rulings保存。
+
+归档checkpoint：5761文件／361268882bytes逐一SHA256一致，active exclusions0；清单SHA2563e1af81e00253f317d8ab5693dace52f5e183241a7af5632d5a1ebc5d25f5202。最终task-done及ledger会再次完整封存后才清理该计划临时目录。89项按作出顺序的决定及代价完整保存于 [rulings JSON](../../docs/evidence/2026-10-05-memory-effect-rulings.json)；自然收益与未通过行为不改变结论。

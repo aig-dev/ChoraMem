@@ -155,3 +155,5 @@ Final: Ruling: New database/runtime/provider execution during read-only review �
 最终追加semantic-reviews.complete-checks-v3.json SHA256 d7eff4efe652ff7037aceb52bc74847e0bb38e2b4c2a97779db29b2f9ac77055；reviewed-summary.complete-checks-v3.json SHA25601ac6def420842e2c7695678ee91a073ca2f93e3c0d506b5d5fe901cd7d814c6；complete-checks-v3-provenance.json SHA256d9bf61235f2d8bd6699f8c66d332a265552aaf6fe1c948a9fdddd754734beeba。75份当时assessment源码完整冻结并复算，全部原文件hash不变，0新model/Core调用。v2第一次严格复算暴露failed-check列表顺序差异，其原artifact和失败log保留，不算作通过的冻结复算。
 
 最终Python821通过／13可选跳过2.05s；Worker／Go／Store／协议／Chorai生产代码没有因本eval-only修复变化，仍由已实跑且重新核对的205production／bridge／full Go／vet／两迁移Store／health200／Chat/Proactive logs覆盖。reviewer独立重跑与执行者运营门分开报告。
+
+归档checkpoint：5761文件／361268882bytes逐一SHA256一致，active exclusions0；清单SHA2563e1af81e00253f317d8ab5693dace52f5e183241a7af5632d5a1ebc5d25f5202。最终task-done及ledger会再次完整封存后才清理该计划临时目录。89项按作出顺序的决定及代价完整保存于 [rulings JSON](2026-10-05-memory-effect-rulings.json)；自然收益与未通过行为不改变结论。
