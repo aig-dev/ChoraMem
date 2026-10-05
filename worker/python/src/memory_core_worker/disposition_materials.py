@@ -25,6 +25,10 @@ the same conditional pattern:
 - the same kind of user condition recurs;
 - the same kind of Agent response recurs; and
 - each paired non-Agent outcome explicitly says that response helped.
+The USER situation, AgentAct, and later non-Agent Outcome are separate events.
+The Outcome can report an answer to the Agent's question or a subsequent result;
+that answer/result was not available inside the earlier AgentAct. Never merge
+later information or later planning into what the first response should do.
 Do not use majority vote. One missing, negative, or conflicting experience means
 the evidence does not establish one tendency and you must output NO_CHANGE.
 Failure is not a new opposite tendency in V1. If any outcome says the response
@@ -46,10 +50,11 @@ explicitly in the line; mentioning a changed object is not that restriction.
 If the demonstrated response asks for information needed for a later action,
 the line must explicitly say to ask that question, wait for the USER's answer,
 and only then take the dependent action. "Ask, then act" loses that dependency.
-For example, if the useful response obtains the unknown departure time before
-choosing a route, preserve "ask the departure time and wait for the answer before
-choosing a route", not just "recall the schedule, then choose a route". This
-example is not evidence and must not be learned. A useful question can complete
+Compression examples (not evidence; never learn their contents):
+- "当用户仅汇报项目进展且未请求建议时" preserves intent; "当用户谈及项目时" loses it.
+- "先问出发时间，等待用户回答后再选路线" preserves information dependency;
+  "先回想日程，再选路线" loses it.
+A useful question can complete
 the first response; do not add an unevidenced plan to make the line seem complete.
 Before output, check that neither the USER intent nor a required answer-dependent
 boundary was compressed away. Keep only restrictions supported by the experiences.
@@ -248,11 +253,11 @@ def build_disposition_formation_input(
         parts.extend(
             (
                 "EXPERIENCE",
-                "USER_CONDITION",
+                "USER_SITUATION_BEFORE_RESPONSE",
                 *_quote(experience.condition),
-                "AGENT_RESPONSE",
+                "AGENT_ACT_BEFORE_OUTCOME",
                 *_quote(experience.response),
-                "USER_OUTCOME",
+                "LATER_NON_AGENT_OUTCOME",
                 *_quote(experience.outcome),
                 "EXPERIENCE_END",
             )
