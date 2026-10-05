@@ -86,6 +86,31 @@ async def test_capture_binds_actual_output_to_started_request(tmp_path):
         api.validate_model_inventory(starts, calls, [])
 
 
+@pytest.mark.asyncio
+async def test_capture_and_request_hash_bind_json_scoring_mode(tmp_path):
+    api = _api()
+    requests = []
+
+    class Model:
+        async def complete(self, **kwargs):
+            requests.append(kwargs)
+            return '{"a":[true],"b":[false]}'
+
+    model = api.CapturedEffectModel(Model(), tmp_path)
+    await model.complete(instructions="Return JSON.", input_text="evidence", max_output_tokens=512, json_output=True)
+    await model.complete(instructions="Return JSON.", input_text="evidence", max_output_tokens=512)
+    starts = api.read_jsonl(tmp_path / "model-started.jsonl")
+    completed = api.read_jsonl(tmp_path / "model-completed.jsonl")
+    assert requests[0]["json_output"] is True
+    assert "json_output" not in requests[1]
+    assert starts[0]["json_output"] is True
+    assert starts[0]["request_sha256"] != starts[1]["request_sha256"]
+    assert api.validate_model_inventory(starts, completed, []) == {"started": 2, "completed": 2, "failed": 0}
+    starts[0]["json_output"] = False
+    with pytest.raises(ValueError, match="request"):
+        api.validate_model_inventory(starts, completed, [])
+
+
 def _pairs(api, winners):
     records = []
     for left, right in api.COMPARISONS:

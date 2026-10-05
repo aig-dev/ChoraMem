@@ -70,12 +70,17 @@ class CapturedEffectModel:
     def last_call(self) -> dict:
         return self._last.get()
 
-    async def complete(self, *, instructions: str, input_text: str, max_output_tokens: int) -> str:
-        started = {"attempt_ref": "model:" + uuid.uuid4().hex, "purpose": EFFECT_PURPOSE.get(), "rpc_ref": EFFECT_RPC.get(), "instructions": instructions, "input_text": input_text, "max_output_tokens": max_output_tokens, "request_sha256": effect_request_sha256(instructions, input_text, max_output_tokens)}
+    async def complete(self, *, instructions: str, input_text: str, max_output_tokens: int, json_output: bool = False) -> str:
+        if type(json_output) is not bool:
+            raise ValueError("json_output must be boolean")
+        started = {"attempt_ref": "model:" + uuid.uuid4().hex, "purpose": EFFECT_PURPOSE.get(), "rpc_ref": EFFECT_RPC.get(), "instructions": instructions, "input_text": input_text, "max_output_tokens": max_output_tokens, "request_sha256": effect_request_sha256(instructions, input_text, max_output_tokens, json_output=json_output)}
+        if json_output:
+            started["json_output"] = True
         append_jsonl(self.output / "model-started.jsonl", started)
         began = time.monotonic()
         try:
-            output = await self.model.complete(instructions=instructions, input_text=input_text, max_output_tokens=max_output_tokens)
+            options = {"json_output": True} if json_output else {}
+            output = await self.model.complete(instructions=instructions, input_text=input_text, max_output_tokens=max_output_tokens, **options)
             if not isinstance(output, str) or not output.strip():
                 raise ValueError("completed provider output is empty")
         except BaseException as error:
@@ -135,7 +140,7 @@ def validate_model_inventory(starts: Sequence[Mapping], completed: Sequence[Mapp
         raise ValueError("incomplete model attempt inventory")
     rpc_counts = Counter()
     for attempt, start in begun.items():
-        if start.get("request_sha256") != effect_request_sha256(start["instructions"], start["input_text"], start["max_output_tokens"]):
+        if type(start.get("json_output", False)) is not bool or start.get("request_sha256") != effect_request_sha256(start["instructions"], start["input_text"], start["max_output_tokens"], json_output=start.get("json_output", False)):
             raise ValueError("started model request drift")
         end = (done | failures)[attempt]
         if any(end.get(k) != v for k, v in start.items()):

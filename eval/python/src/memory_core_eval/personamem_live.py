@@ -430,12 +430,16 @@ class ChatTextModel:
         self.completion_attempts = completion_attempts
         usage_file.parent.mkdir(parents=True, exist_ok=True)
 
-    async def complete(self, *, instructions: str, input_text: str, max_output_tokens: int) -> str:
+    async def complete(self, *, instructions: str, input_text: str, max_output_tokens: int, json_output: bool = False) -> str:
+        if type(json_output) is not bool:
+            raise ValueError("json_output must be boolean")
         messages = []
         if instructions:
             messages.append({"role": "system", "content": instructions})
         messages.append({"role": "user", "content": input_text})
         request = dict(model=self.model, messages=messages, max_tokens=max_output_tokens, temperature=0)
+        if json_output:
+            request["response_format"] = {"type": "json_object"}
         extra_body = {}
         if self.reasoning_split:
             extra_body["reasoning_split"] = True
@@ -458,6 +462,7 @@ class ChatTextModel:
                                          "thinking_enabled": self.thinking_enabled,
                                          "reasoning_split": self.reasoning_split,
                                          "max_output_tokens": max_output_tokens,
+                                         "json_output": json_output,
                                          "duration_ms": round((time.perf_counter() - start) * 1000, 3)}) + "\n")
             if finish_reason == "length" and attempt + 1 < self.completion_attempts:
                 continue

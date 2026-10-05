@@ -132,6 +132,7 @@ def make_diagnostic_manifest(data: DiagnosticData, *, evaluation_ref: str, runti
         "calibration_refs": [c.case_ref for c in data.calibration],
         "grader": _GRADER_CONTRACT | {"positions": list(_GRADER_CONTRACT["positions"])}, "oracle_gate": dict(_ORACLE_GATE),
         "grader_output_transport": _GRADE_OUTPUT_TRANSPORT,
+        "grader_response_format": {"type": "json_object"},
         "runtime": dict(runtime), "source_sha256": dict(source_sha256),
         "core_binary_sha256": core_binary_sha256, "provider": dict(provider),
         "scope": "independent frozen synthetic capacity/interference diagnostic; no natural-distribution or human benefit claim",
@@ -142,7 +143,7 @@ def make_diagnostic_manifest(data: DiagnosticData, *, evaluation_ref: str, runti
 
 def validate_diagnostic_manifest(manifest: Mapping, data: DiagnosticData, *, runtime: Mapping, source_sha256: Mapping[str, str]) -> None:
     from .memory_effect_cli import _BUDGETS, _hash
-    required = {"protocol", "evaluation_ref", "data_sha256", "case_refs", "case_input_sha256", "calibration_refs", "grader", "grader_output_transport", "oracle_gate", "runtime", "source_sha256", "core_binary_sha256", "provider", "scope"}
+    required = {"protocol", "evaluation_ref", "data_sha256", "case_refs", "case_input_sha256", "calibration_refs", "grader", "grader_output_transport", "grader_response_format", "oracle_gate", "runtime", "source_sha256", "core_binary_sha256", "provider", "scope"}
     if not isinstance(manifest, Mapping) or not required <= manifest.keys():
         raise ValueError("incomplete diagnostic manifest")
     if manifest["protocol"] != PROTOCOL or manifest["data_sha256"] != data.source_sha256:
@@ -151,7 +152,7 @@ def validate_diagnostic_manifest(manifest: Mapping, data: DiagnosticData, *, run
     expected_inputs = {i.instance_ref: diagnostic_input_sha256(i) for i in data.instances + data.negative_controls}
     if manifest["case_refs"] != expected_refs or manifest["case_input_sha256"] != expected_inputs or manifest["calibration_refs"] != [c.case_ref for c in data.calibration]:
         raise ValueError("diagnostic manifest case/calibration denominator drift")
-    if manifest["grader"] != _GRADER_CONTRACT or manifest["grader_output_transport"] != _GRADE_OUTPUT_TRANSPORT or manifest["oracle_gate"] != _ORACLE_GATE:
+    if manifest["grader"] != _GRADER_CONTRACT or manifest["grader_output_transport"] != _GRADE_OUTPUT_TRANSPORT or manifest["grader_response_format"] != {"type": "json_object"} or manifest["oracle_gate"] != _ORACLE_GATE:
         raise ValueError("diagnostic manifest grader/gate drift")
     if manifest["runtime"] != runtime or set(runtime) != set(_BUDGETS) | {"model", "model_revision", "base_url"} or any(runtime.get(k) != v for k, v in _BUDGETS.items()) or any(not isinstance(runtime.get(k), str) or not runtime[k].strip() for k in ("model", "model_revision", "base_url")):
         raise ValueError("diagnostic manifest runtime/budget drift")
@@ -216,9 +217,9 @@ def validate_diagnostic_judgments(instance: DelayedSeedInstance, checks: Sequenc
             raise ValueError("diagnostic missing/reused actual judge attempt")
         attempts.add(attempt)
         instructions, prompt = build_diagnostic_pair_prompt(current_request=instance.current_request, checks=checks, response_a=responses[a], response_b=responses[b])
-        request = effect_request_sha256(instructions, prompt, 512)
+        request = effect_request_sha256(instructions, prompt, 512, json_output=True)
         call = calls[attempt]
-        if row.get("request_sha256") != request or call.get("request_sha256") != request or (call.get("instructions"), call.get("input_text"), call.get("max_output_tokens")) != (instructions, prompt, 512):
+        if row.get("request_sha256") != request or call.get("request_sha256") != request or call.get("json_output") is not True or (call.get("instructions"), call.get("input_text"), call.get("max_output_tokens")) != (instructions, prompt, 512):
             raise ValueError("diagnostic judge call/prompt drift")
         if (row.get("response_a_sha256"), row.get("response_b_sha256")) != (sha256_text(responses[a]), sha256_text(responses[b])):
             raise ValueError("diagnostic judge response body drift")
@@ -269,13 +270,14 @@ def validate_calibration_calls(data: DiagnosticData, legacy: Sequence[Mapping], 
                 instructions, prompt = build_pairwise_prompt(persona_text=data.instances[0].persona_text, current_request=case.current_request, target_behavior="\n".join(case.checks), response_a=a, response_b=b)
             else:
                 instructions, prompt = build_diagnostic_pair_prompt(current_request=case.current_request, checks=case.checks, response_a=a, response_b=b)
-            request = effect_request_sha256(instructions, prompt, 512)
+            json_output = grader == GRADER
+            request = effect_request_sha256(instructions, prompt, 512, json_output=json_output)
             attempt = row.get("attempt_ref")
             if attempt in attempts or attempt not in calls:
                 raise ValueError("calibration missing/reused actual attempt")
             attempts.add(attempt)
             call = calls[attempt]
-            if row.get("request_sha256") != request or call.get("request_sha256") != request or (call.get("instructions"), call.get("input_text"), call.get("max_output_tokens")) != (instructions, prompt, 512):
+            if row.get("request_sha256") != request or call.get("request_sha256") != request or call.get("json_output", False) is not json_output or (call.get("instructions"), call.get("input_text"), call.get("max_output_tokens")) != (instructions, prompt, 512):
                 raise ValueError("calibration actual request drift")
             if (row.get("response_a_sha256"), row.get("response_b_sha256")) != (sha256_text(a), sha256_text(b)):
                 raise ValueError("calibration known response drift")
@@ -462,7 +464,8 @@ async def run_public_diagnostic(*, data: DiagnosticData, evaluation_ref: str, me
                     instructions, prompt = build_diagnostic_pair_prompt(current_request=case.current_request, checks=case.checks, response_a=a, response_b=b)
                 token = EFFECT_PURPOSE.set(f"diagnostic:{case.case_ref}:{grader}:{direction}")
                 try:
-                    value = await model.complete(instructions=instructions, input_text=prompt, max_output_tokens=512)
+                    options = {"json_output": True} if grader == GRADER else {}
+                    value = await model.complete(instructions=instructions, input_text=prompt, max_output_tokens=512, **options)
                 finally:
                     EFFECT_PURPOSE.reset(token)
                 record = {"case_ref": case.case_ref, "direction": direction, "grader": grader, "attempt_ref": model.last_call["attempt_ref"], "request_sha256": model.last_call["request_sha256"], "response_a_sha256": sha256_text(a), "response_b_sha256": sha256_text(b)}
@@ -517,7 +520,7 @@ async def run_public_diagnostic(*, data: DiagnosticData, evaluation_ref: str, me
                 instructions, prompt = build_diagnostic_pair_prompt(current_request=instance.current_request, checks=data.expectations[ref]["checks"], response_a=responses[a], response_b=responses[b])
                 token = EFFECT_PURPOSE.set(f"diagnostic:{ref}:judge:{left}:{right}:{direction}")
                 try:
-                    value = await model.complete(instructions=instructions, input_text=prompt, max_output_tokens=512)
+                    value = await model.complete(instructions=instructions, input_text=prompt, max_output_tokens=512, json_output=True)
                 finally:
                     EFFECT_PURPOSE.reset(token)
                 flags_a, flags_b = parse_diagnostic_pair(value, check_count=3)

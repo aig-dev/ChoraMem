@@ -8,6 +8,26 @@ import pytest
 
 
 @pytest.mark.asyncio
+async def test_json_scoring_format_is_explicit_and_does_not_change_plain_answers(tmp_path):
+    from types import SimpleNamespace
+    from memory_core_eval.personamem_live import ChatTextModel
+    requests = []
+
+    async def create(**kwargs):
+        requests.append(kwargs)
+        return SimpleNamespace(choices=[SimpleNamespace(message=SimpleNamespace(content='{"a":[true],"b":[false]}'), finish_reason="stop")], usage=None)
+
+    client = SimpleNamespace(chat=SimpleNamespace(completions=SimpleNamespace(create=create)))
+    model = ChatTextModel(model="test-model", api_key="unused", base_url="https://example.test", usage_file=tmp_path / "usage.jsonl", client=client)
+    await model.complete(instructions="Return JSON.", input_text="quoted evidence", max_output_tokens=512, json_output=True)
+    await model.complete(instructions="Answer the user.", input_text="current request", max_output_tokens=1024)
+    assert requests[0]["response_format"] == {"type": "json_object"}
+    assert "response_format" not in requests[1]
+    rows = [json.loads(line) for line in (tmp_path / "usage.jsonl").read_text().splitlines()]
+    assert [row["json_output"] for row in rows] == [True, False]
+
+
+@pytest.mark.asyncio
 async def test_chat_adapter_preserves_plain_text_and_records_real_usage(tmp_path):
     from memory_core_eval.personamem_live import ChatTextModel
 

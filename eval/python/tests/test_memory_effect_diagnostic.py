@@ -166,6 +166,7 @@ async def test_failed_known_calibration_stops_before_capacity_memory_writes(tmp_
     lambda m: m["calibration_refs"].pop(),
     lambda m: m.update(data_sha256="d" * 64),
     lambda m: m.update(grader_output_transport="any JSON substring"),
+    lambda m: m.pop("grader_response_format", None),
 ])
 def test_independent_manifest_cannot_silently_change_budget_gate_or_denominator(mutation):
     api = _api()
@@ -199,8 +200,8 @@ def test_judgments_bind_both_positions_and_flags_to_actual_completed_calls(mutat
             a, b = (left, right) if direction == "forward" else (right, left)
             instructions, prompt = api.build_diagnostic_pair_prompt(current_request=instance.current_request, checks=checks, response_a=responses[a], response_b=responses[b])
             attempt = f"{left}:{right}:{direction}"
-            request = effect_request_sha256(instructions, prompt, 512)
-            calls[attempt] = dict(instructions=instructions, input_text=prompt, max_output_tokens=512, request_sha256=request, output='{"a":[true,true,true],"b":[true,true,true]}')
+            request = effect_request_sha256(instructions, prompt, 512, json_output=True)
+            calls[attempt] = dict(instructions=instructions, input_text=prompt, max_output_tokens=512, json_output=True, request_sha256=request, output='{"a":[true,true,true],"b":[true,true,true]}')
             rows.append(dict(left=left, right=right, direction=direction, a_mode=a, b_mode=b, a=[True]*3, b=[True]*3, attempt_ref=attempt, request_sha256=request, response_a_sha256=sha256_text(responses[a]), response_b_sha256=sha256_text(responses[b])))
     mutation(rows, calls)
     with pytest.raises(ValueError):
@@ -225,8 +226,8 @@ def _calibration_bundle():
                     instructions, prompt = api.build_diagnostic_pair_prompt(current_request=case.current_request, checks=case.checks, response_a=a, response_b=b)
                     output = json.dumps(dict(a=flags[0], b=flags[1]))
                 attempt = f"{case.case_ref}:{grader}:{direction}"
-                request = effect_request_sha256(instructions, prompt, 512)
-                calls[attempt] = dict(instructions=instructions, input_text=prompt, max_output_tokens=512, request_sha256=request, output=output)
+                request = effect_request_sha256(instructions, prompt, 512, json_output=grader == api.GRADER)
+                calls[attempt] = dict(instructions=instructions, input_text=prompt, max_output_tokens=512, json_output=grader == api.GRADER, request_sha256=request, output=output)
                 row = dict(case_ref=case.case_ref, direction=direction, grader=grader, attempt_ref=attempt, request_sha256=request, response_a_sha256=sha256_text(a), response_b_sha256=sha256_text(b))
                 if grader == "legacy":
                     row["token"] = output
@@ -339,6 +340,9 @@ async def test_complete_public_diagnostic_summary_preserves_failed_semantics_and
             return "Completed provider fixture."
 
     result = await api.run_public_diagnostic(data=data, evaluation_ref="diagnostic-test", memory=MemoryBoundary(), probe=None, model=CapturedEffectModel(Provider(), tmp_path), token_count=lambda text: len(text) // 8, output=tmp_path)
+    captured = read_jsonl(tmp_path / "model-started.jsonl")
+    assert all(c.get("json_output") is True for c in captured if api.GRADER in c["purpose"] or ":judge:" in c["purpose"])
+    assert all(not c.get("json_output") for c in captured if api.GRADER not in c["purpose"] and ":judge:" not in c["purpose"])
     records = result["records"]
     reviews = [api.diagnostic_review_template(data, r) for r in records]
     for review in reviews:

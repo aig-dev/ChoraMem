@@ -244,8 +244,10 @@ def sha256_text(text: str) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
-def effect_request_sha256(instructions: str, input_text: str, max_output_tokens: int) -> str:
+def effect_request_sha256(instructions: str, input_text: str, max_output_tokens: int, *, json_output: bool = False) -> str:
     value = {"instructions": instructions, "input_text": input_text, "max_output_tokens": max_output_tokens}
+    if json_output:
+        value["json_output"] = True
     return sha256_text(json.dumps(value, ensure_ascii=False, sort_keys=True, separators=(",", ":")))
 
 
