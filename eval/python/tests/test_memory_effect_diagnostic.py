@@ -72,9 +72,30 @@ def test_calibration_expected_labels_are_absent_from_judge_input():
     '{"a":["true"],"b":[false]}',
     '{"a":[true,true],"b":[false]}',
     '{"a":[true]}',
-    '```json\n{"a":[true],"b":[false]}\n```',
+    '```json\n{"a":[true],"b":[false]}\n```\nadditional text',
 ])
 def test_pair_parser_rejects_label_guessing_nonboolean_and_partial_vectors(output):
+    with pytest.raises(ValueError):
+        _api().parse_diagnostic_pair(output, check_count=1)
+
+
+@pytest.mark.parametrize("output,expected", [
+    ('```json\n{\n  "a": [false, false],\n  "b": [false, false]\n}\n```', ((False, False), (False, False))),
+    ('```json\n{\n  "a": [false, false],\n  "b": [true, true]\n}\n```', ((False, False), (True, True))),
+    ('```json\n{\n  "a": [true, true],\n  "b": [false, false]\n}\n```', ((True, True), (False, False))),
+])
+def test_pair_accepts_a_single_complete_json_transport_fence(output, expected):
+    """Exact returned k3/k4/k5 envelopes; no change to semantic flags."""
+    assert _api().parse_diagnostic_pair(output, check_count=2) == expected
+
+
+@pytest.mark.parametrize("output", [
+    'explanation\n```json\n{"a":[true],"b":[false]}\n```',
+    '```json\n{"a":[true],"b":[false]}\n```\n```json\n{}\n```',
+    '```json\n{"a":[true],"b":[false],"winner":"A"}\n```',
+    '```json\n{"a":[1],"b":[false]}\n```',
+])
+def test_json_envelope_cannot_salvage_extra_text_blocks_or_invalid_payload(output):
     with pytest.raises(ValueError):
         _api().parse_diagnostic_pair(output, check_count=1)
 
@@ -144,6 +165,7 @@ async def test_failed_known_calibration_stops_before_capacity_memory_writes(tmp_
     lambda m: m["case_refs"].pop(),
     lambda m: m["calibration_refs"].pop(),
     lambda m: m.update(data_sha256="d" * 64),
+    lambda m: m.update(grader_output_transport="any JSON substring"),
 ])
 def test_independent_manifest_cannot_silently_change_budget_gate_or_denominator(mutation):
     api = _api()

@@ -6,6 +6,7 @@ from dataclasses import dataclass
 import hashlib
 import json
 from pathlib import Path
+import re
 from types import MappingProxyType
 
 from google.protobuf.json_format import MessageToDict
@@ -16,6 +17,7 @@ from .memory_effect_data import _fields, _object, _sessions, _text, _texts, memo
 
 PROTOCOL = "memory-effect-diagnostic-v1"
 GRADER = "memory-effect-clause-pair-v1"
+_GRADE_OUTPUT_TRANSPORT = "plain JSON or one complete json Markdown fence; exact payload schema unchanged"
 _GRADER_CONTRACT = {
     "protocol": GRADER, "calibration_required": 8,
     "positions": ["forward", "reverse"],
@@ -129,6 +131,7 @@ def make_diagnostic_manifest(data: DiagnosticData, *, evaluation_ref: str, runti
         "case_input_sha256": {i.instance_ref: diagnostic_input_sha256(i) for i in data.instances + data.negative_controls},
         "calibration_refs": [c.case_ref for c in data.calibration],
         "grader": _GRADER_CONTRACT | {"positions": list(_GRADER_CONTRACT["positions"])}, "oracle_gate": dict(_ORACLE_GATE),
+        "grader_output_transport": _GRADE_OUTPUT_TRANSPORT,
         "runtime": dict(runtime), "source_sha256": dict(source_sha256),
         "core_binary_sha256": core_binary_sha256, "provider": dict(provider),
         "scope": "independent frozen synthetic capacity/interference diagnostic; no natural-distribution or human benefit claim",
@@ -139,7 +142,7 @@ def make_diagnostic_manifest(data: DiagnosticData, *, evaluation_ref: str, runti
 
 def validate_diagnostic_manifest(manifest: Mapping, data: DiagnosticData, *, runtime: Mapping, source_sha256: Mapping[str, str]) -> None:
     from .memory_effect_cli import _BUDGETS, _hash
-    required = {"protocol", "evaluation_ref", "data_sha256", "case_refs", "case_input_sha256", "calibration_refs", "grader", "oracle_gate", "runtime", "source_sha256", "core_binary_sha256", "provider", "scope"}
+    required = {"protocol", "evaluation_ref", "data_sha256", "case_refs", "case_input_sha256", "calibration_refs", "grader", "grader_output_transport", "oracle_gate", "runtime", "source_sha256", "core_binary_sha256", "provider", "scope"}
     if not isinstance(manifest, Mapping) or not required <= manifest.keys():
         raise ValueError("incomplete diagnostic manifest")
     if manifest["protocol"] != PROTOCOL or manifest["data_sha256"] != data.source_sha256:
@@ -148,7 +151,7 @@ def validate_diagnostic_manifest(manifest: Mapping, data: DiagnosticData, *, run
     expected_inputs = {i.instance_ref: diagnostic_input_sha256(i) for i in data.instances + data.negative_controls}
     if manifest["case_refs"] != expected_refs or manifest["case_input_sha256"] != expected_inputs or manifest["calibration_refs"] != [c.case_ref for c in data.calibration]:
         raise ValueError("diagnostic manifest case/calibration denominator drift")
-    if manifest["grader"] != _GRADER_CONTRACT or manifest["oracle_gate"] != _ORACLE_GATE:
+    if manifest["grader"] != _GRADER_CONTRACT or manifest["grader_output_transport"] != _GRADE_OUTPUT_TRANSPORT or manifest["oracle_gate"] != _ORACLE_GATE:
         raise ValueError("diagnostic manifest grader/gate drift")
     if manifest["runtime"] != runtime or set(runtime) != set(_BUDGETS) | {"model", "model_revision", "base_url"} or any(runtime.get(k) != v for k, v in _BUDGETS.items()) or any(not isinstance(runtime.get(k), str) or not runtime[k].strip() for k in ("model", "model_revision", "base_url")):
         raise ValueError("diagnostic manifest runtime/budget drift")
@@ -170,8 +173,11 @@ def build_diagnostic_pair_prompt(*, current_request: str, checks: Sequence[str],
 def parse_diagnostic_pair(output: str, *, check_count: int) -> tuple[tuple[bool, ...], tuple[bool, ...]]:
     if not isinstance(output, str) or type(check_count) is not int or check_count < 1:
         raise ValueError("invalid diagnostic pair/check count")
+    # A complete transport envelope is not a partial JSON salvage. Additional
+    # prose/blocks still fail json.loads or the unchanged exact payload schema.
+    envelope = re.fullmatch(r"```json\r?\n([\s\S]*?)\r?\n```", output.strip())
     try:
-        raw = json.loads(output)
+        raw = json.loads(envelope[1] if envelope else output)
     except (ValueError, TypeError) as error:
         raise ValueError("invalid diagnostic pair JSON") from error
     _fields(_object(raw, "pair"), {"a", "b"})
