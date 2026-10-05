@@ -83,12 +83,40 @@ def test_calibration_expected_labels_are_absent_from_judge_input():
     assert json.loads(prompt)["checks"] == list(case.checks)
 
 
+@pytest.mark.parametrize("check_count", [1, 2, 3])
+def test_json_grade_shape_example_has_exact_count_and_no_position_preference(check_count):
+    api = _api()
+    instructions, _ = api.build_diagnostic_pair_prompt(
+        current_request="source situation",
+        checks=[f"required behavior {i}" for i in range(check_count)],
+        response_a="first quoted response",
+        response_b="second quoted response",
+    )
+    example = json.loads(instructions.splitlines()[-1])
+    a, b = api.parse_diagnostic_pair(json.dumps(example), check_count=check_count)
+    assert a == b  # The syntax example cannot teach a preferred response position.
+
+
+def test_json_grade_shape_example_is_independent_of_response_and_check_meaning():
+    api = _api()
+    first, _ = api.build_diagnostic_pair_prompt(
+        current_request="first situation", checks=["first requirement"],
+        response_a="passing", response_b="failing",
+    )
+    second, _ = api.build_diagnostic_pair_prompt(
+        current_request="unrelated situation", checks=["unrelated requirement"],
+        response_a="failing", response_b="passing",
+    )
+    assert json.loads(first.splitlines()[-1]) == json.loads(second.splitlines()[-1])
+
+
 @pytest.mark.parametrize("output", [
     '{"a":[true],"b":[true],"winner":"A"}',
     '{"a":[1],"b":[false]}',
     '{"a":["true"],"b":[false]}',
     '{"a":[true,true],"b":[false]}',
     '{"a":[true]}',
+    '   [true, true, true]\nresponseb: [false, false, false]',
     '```json\n{"a":[true],"b":[false]}\n```\nadditional text',
 ])
 def test_pair_parser_rejects_label_guessing_nonboolean_and_partial_vectors(output):

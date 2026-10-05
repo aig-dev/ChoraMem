@@ -165,7 +165,15 @@ def validate_diagnostic_manifest(manifest: Mapping, data: DiagnosticData, *, run
 def build_diagnostic_pair_prompt(*, current_request: str, checks: Sequence[str], response_a: str, response_b: str) -> tuple[str, str]:
     if not checks or any(not isinstance(c, str) or not c.strip() for c in checks):
         raise ValueError("diagnostic checks must be complete")
-    return _JUDGE_SYSTEM, json.dumps({
+    # JSON mode also needs a concrete format example. Its arbitrary values are
+    # identical across positions and depend only on count, never expected labels.
+    example = [index % 2 == 0 for index in range(len(checks))]
+    instructions = _JUDGE_SYSTEM + (
+        "\nThis json example shows syntax and array length only. Its arbitrary values\n"
+        "are not judgments; evaluate every quoted response against the actual checks.\n"
+        + json.dumps({"a": example, "b": example})
+    )
+    return instructions, json.dumps({
         "current_request": _text(current_request, "current_request"), "checks": list(checks),
         "response_a": _text(response_a, "response_a"), "response_b": _text(response_b, "response_b"),
     }, ensure_ascii=False, sort_keys=True)
