@@ -67,6 +67,11 @@ Compression examples (not evidence; never learn their contents):
   "先回想日程，再选路线" loses it.
 A useful question can complete
 the first response; do not add an unevidenced plan to make the line seem complete.
+An outcome's explicitly valued avoidance is part of the response strategy.
+When the experiences independently value avoiding the same kind of response,
+name that exclusion in the conditional line. Naming the preferred response alone
+does not prevent adding the unwanted response before or alongside it. Mere
+absence of an action is not evidence of an avoidance requirement.
 Before output, check that neither the USER intent nor a required answer-dependent
 boundary was compressed away. Keep only restrictions supported by the experiences.
 Do not output IDs, JSON, markdown, scores, confidence, or
