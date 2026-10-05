@@ -143,10 +143,13 @@ sources，因此 Core 也只把这些模型可见的当前 Episode 绑定为 Bas
 当 Core 在 typed evidence 中明确标出一个当前 `formation_role=anchor` 与至少一个较早
 `formation_role=candidate`，且这些 Episode 全部具有不同 session、实际 AgentAct 与唯一配对
 non-Agent Outcome 时，`disposition_formation_material(request)` 才会构造不含 refs 的
-`CONSTITUTION / EXISTING_DISPOSITIONS / EXPERIENCES` 文本。每份 EXPERIENCE 明确排列用户
+`CONSTITUTION / EXISTING_DISPOSITIONS / CURRENT_USER_CONTEXT / EXPERIENCES` 文本。每份 EXPERIENCE 明确排列用户
 情境、Agent 反应与用户结果；模型只返回一行倾向或 `NO_CHANGE`。绑定器补回 Core 已允许的
 `NEW_DISPOSITION / APPLICATION / TEXT / BASIS`，并按模型所见顺序逐对绑定
-`Episode -> Outcome`；未标记的 current/related Episode 不进入 focused prompt。普通聊天 Episode
+`Episode -> Outcome`；未标记的 Episode 不进入 EXPERIENCES 或形成 Basis。当前 USER Situation 的
+完整正文另以引用上下文保留，避免历史正例重新形成已被本人纠正的旧回应；它不补充成功证据，
+也不授予新 Seed 的直接形成资格。模型应对已有相同条件含义返回 NO_CHANGE；绑定器另外拒绝
+与已有正文完全相同的输出，语义改写仍由模型判断。普通聊天 Episode
 不具新 Seed 的单步权威：统一 lane 返回的所有 `NEW_DISPOSITION ADAPT` 块都会被机械移除；已有
 Seed 的 exact Target 仍可用 `ADAPT` 接受本人直接长期纠正。完整配对被 focused lane 接管后，统一
 lane 产生的同类 `NEW_DISPOSITION TEXT` 块也会被机械移除，其他 Target 保留。只有 anchor 而
@@ -157,6 +160,13 @@ candidate 的 `origin` 可为 `related`，也可为 scheduler overlap 带入的 
 反馈输出逐完整 Target 块归一，其他主结果保留；兼容 Core 已支持的行内 TEXT／ADAPT 正文。本人长期纠正的既有 ADAPT 不按反馈归一。
 一次 recovery 只提供尚未处理的合格既有 Target，完成的 Target 不会重复提交。主 pass 漏掉既有长期纠正时，同一 recovery 可处理 Core 已提供的 `ELIGIBLE_ADAPTATION`：模型判断本人明确的超出当前任务的长期要求，`ADAPT` 只能引用该 Target 自己的一份 `DIRECT_EPISODE`，不借用其他目标／Outcome，不拼接多个直接依据，也不能初生新 Seed。没有长期要求时仍按原行为反馈规则或 no-change 处理；调用上限不变。
 Core 仍校验每个 Target 的精确 Basis；反馈规范化只使用该 Target 已提供的因果对，不借用其他目标的 Outcome，也不授予资格。原始 recovery 输出先受 64 KiB 上限约束。
+已再现的 Episode 默认不再提供反馈资格；新到达且未消费的非 Agent Outcome 若绑定同一实际
+Delivery，Core 可再次提供其精确 Episode/Outcome 对。Target 内的 RECORDED_EPISODE 提示只
+阻止重复 REENACT；新结果仍可支持 TEXT/INHIBIT。它不改变外部反馈权威，也不自动迁移到已退休版本。
+
+事实后备 lane 先处理本人直接的主题遗忘要求，只保存不使用该主题的约束，正文不得重复原值；
+此约束不删除不可变来源。明确转述的第三方事实保留具名归属，不能把引语中的第一人称归给用户；
+它记录的是报告内容，不保证第三方事实为真。草稿、虚构、假设及未被断言的引语仍不能成为用户事实。
 
 推断型 Disposition 的每个形成 Basis 必须支持同一个完整回应倾向；不能把同主题下分别成立的
 多个动作拼成一个 Seed。Disposition 演化、精确去重与原子提交仍由统一路径和 Core 处理。因此每窗口的

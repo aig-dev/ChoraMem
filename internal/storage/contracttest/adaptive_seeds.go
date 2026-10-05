@@ -342,6 +342,87 @@ func RunAdaptiveSeeds(t *testing.T, factory IndexedFactory) {
 		}
 	})
 
+	for _, operation := range []string{consolidation.ChangeInhibit, consolidation.ChangeText} {
+		t.Run("late_outcome_after_reenactment_"+strings.ToLower(operation), func(t *testing.T) {
+			s := newScenario(migratedIndexedStore(t, factory, &scriptedIndex{}))
+			one, _, _ := s.materializeEpisode(t, "late-form-one", "Tasks overwhelm me")
+			two, _, _ := s.materializeEpisode(t, "late-form-two", "Too many tasks stop me")
+			formed, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{
+				JobRef: "late-form", EpisodeRefs: []string{one, two},
+			}, textWorker(taggedChange(consolidation.TargetNewDisposition, consolidation.ApplicationRelation,
+				consolidation.ChangeText, "When overwhelmed, offer one next action", one, two)))
+			if err != nil || len(formed.DispositionVersionRefs) != 1 {
+				t.Fatalf("form late feedback fixture = %#v, %v", formed, err)
+			}
+			target := formed.DispositionVersionRefs[0]
+			run := s.activate(t, "late-run", "When overwhelmed, offer one next action", target)
+			delivery, err := s.store.RecordMemoryDelivery(testContext(t), ledger.MemoryDelivery{
+				IdempotencyKey: s.prefix + "-late-delivery", Scope: run.scope, RunRef: run.runRef,
+				MemoryContextRef: run.memoryContextRef, DeliveredMemoryRefs: []string{target},
+			})
+			if err != nil {
+				t.Fatal(err)
+			}
+			episode, act := s.finishActivatedRun(t, run, "Do just one small action")
+			if _, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{
+				JobRef: "late-reenact", EpisodeRefs: []string{episode},
+			}, textWorker(taggedChange(target, consolidation.ApplicationRelation, consolidation.ChangeReenact, "", episode))); err != nil {
+				t.Fatal(err)
+			}
+			outcome, err := s.store.ReportOutcome(testContext(t), ledger.OutcomeReport{
+				IdempotencyKey: s.prefix + "-late-outcome",
+				Event:          s.eventInScope("late-outcome", run.scope, ledger.ActorKindUser, "I tried it later and it did not help"),
+				RunRef:         run.runRef, SourceGroupRef: run.groupRef,
+				DeliveryReceiptRefs: []string{delivery.Ref}, RelatedSourceEventRefs: []string{run.situationRef, act},
+			})
+			if err != nil || outcome.EpisodeRef != episode {
+				t.Fatalf("late exact association = %#v, %v", outcome, err)
+			}
+			body := ""
+			if operation == consolidation.ChangeText {
+				body = "When overwhelmed, first identify the consequential blocker before one action"
+			}
+			worker := &capturingWorker{text: taggedChange(target, consolidation.ApplicationRelation,
+				operation, body, episode, outcome.OutcomeEventRef)}
+			result, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{
+				JobRef: "late-result", EpisodeRefs: []string{episode}, OutcomeEventRefs: []string{outcome.OutcomeEventRef},
+			}, worker)
+			wantVersions := 0 // INHIBIT appends Basis to the existing version.
+			if operation == consolidation.ChangeText {
+				wantVersions = 1
+			}
+			if err != nil || len(result.DispositionVersionRefs) != wantVersions {
+				t.Fatalf("new result after reenactment = %#v, %v", result, err)
+			}
+			for _, marker := range []string{"FEEDBACK_EPISODE " + episode, "RECORDED_EPISODE " + episode, "FEEDBACK_OUTCOME " + outcome.OutcomeEventRef} {
+				if !strings.Contains(worker.request.WindowText, marker) {
+					t.Fatalf("new exact pair missing %q:\n%s", marker, worker.request.WindowText)
+				}
+			}
+			// A consumed result must not reopen the old pair on overlapping windows.
+			if operation == consolidation.ChangeInhibit {
+				probe := s.store.(adaptiveStoreProbe)
+				want := map[string]int{"reenactment": 1, "inhibition_episode": 1, "inhibition_outcome": 1}
+				if got := probe.AdaptiveFeedbackBasisCounts(t, target, episode, outcome.OutcomeEventRef); !reflect.DeepEqual(got, want) {
+					t.Fatalf("late result did not inhibit the exact old pair: %#v; want %#v", got, want)
+				}
+				replay := &capturingWorker{}
+				if _, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{
+					JobRef: "late-consumed-replay", EpisodeRefs: []string{episode}, OutcomeEventRefs: []string{outcome.OutcomeEventRef},
+				}, replay); err != nil {
+					t.Fatal(err)
+				}
+				if strings.Contains(replay.request.WindowText, "FEEDBACK_EPISODE "+episode) ||
+					strings.Contains(replay.request.WindowText, "FEEDBACK_OUTCOME "+outcome.OutcomeEventRef) {
+					t.Fatalf("consumed result offered again:\n%s", replay.request.WindowText)
+				}
+				if got := probe.AdaptiveFeedbackBasisCounts(t, target, episode, outcome.OutcomeEventRef); !reflect.DeepEqual(got, want) {
+					t.Fatalf("replay changed consumed Basis: %#v; want %#v", got, want)
+				}
+			}
+		})
+	}
+
 	// A lexical LIMIT before ranking loses a clearly relevant existing Seed.
 	// Exercise real intake, candidate rendering and commit with no useful index.
 	for _, mode := range []string{"none", "empty", "unavailable"} {

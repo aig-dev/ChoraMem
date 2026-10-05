@@ -38,6 +38,44 @@ class SequenceTextModel:
 
 
 @pytest.mark.asyncio
+async def test_recorded_episode_can_use_new_outcome_but_cannot_reenact_twice():
+    window = (
+        "ELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT One action.\n"
+        "FEEDBACK_EPISODE episode-old\nRECORDED_EPISODE episode-old\n"
+        "FEEDBACK_OUTCOME outcome-new\nOUTCOME_EPISODE episode-old"
+    )
+    prefix = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\n"
+    reenact = prefix + "REENACT\nBASIS\nepisode-old"
+    inhibit = prefix + "INHIBIT\nBASIS\nepisode-old\noutcome-new"
+    request = inference_pb2.ProcessConsolidationWindowRequest(
+        window_text=window, allowed_target_refs=["seed-current@1"],
+        allowed_basis_refs=["episode-old", "outcome-new"],
+    )
+    model = SequenceTextModel([reenact, "NO_CHANGE"])
+    result = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert result.tagged_text == ""
+    model = SequenceTextModel([inhibit])
+    result = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert result.tagged_text == inhibit
+
+
+@pytest.mark.asyncio
+async def test_recorded_episode_hint_stays_inside_its_exact_target():
+    window = (
+        "ELIGIBLE_DISPOSITION seed-other@1\nAPPLICATION RELATION\nTEXT Another behavior.\n"
+        "FEEDBACK_EPISODE episode-current\nRECORDED_EPISODE episode-current\n"
+        "ELIGIBLE_DISPOSITION seed-current@1\nAPPLICATION RELATION\nTEXT One action.\n"
+        "FEEDBACK_EPISODE episode-current"
+    )
+    reenact = "TARGET\nseed-current@1\nAPPLICATION\nRELATION\nCHANGE\nREENACT\nBASIS\nepisode-current"
+    result = await InferenceService(SequenceTextModel([reenact])).ProcessConsolidationWindow(
+        inference_pb2.ProcessConsolidationWindowRequest(window_text=window,
+            allowed_target_refs=["seed-current@1"], allowed_basis_refs=["episode-current"]), None,
+    )
+    assert result.tagged_text == reenact
+
+
+@pytest.mark.asyncio
 @pytest.mark.parametrize("also_feedback", [False, True])
 async def test_recovery_reaches_existing_direct_adapt_after_primary_no_change(also_feedback):
     """A missed lasting correction must reach the existing bounded recovery call."""

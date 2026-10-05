@@ -353,7 +353,7 @@ async def run_live_effects(*, data: MemoryEffectDataset, manifest: Mapping, memo
             anti_output = await model.complete(instructions=instructions, input_text=input_text, max_output_tokens=ANSWER_TOKENS)
         finally:
             EFFECT_PURPOSE.reset(token)
-        anti = {"output": anti_output, "output_sha256": sha256_text(anti_output), "attempt_ref": model.last_call["attempt_ref"], "request_sha256": model.last_call["request_sha256"], "foundation_text": oracle_arm["foundation_text"], "tendency_text": anti_tendency, "memory_text": anti_memory, "memory_tokens": token_count(anti_memory), "canonical_refs": [], "authority": "eval-only, no canonical Delivery/AgentAct/Outcome"}
+        anti = {"output": anti_output, "output_sha256": sha256_text(anti_output), "attempt_ref": model.last_call["attempt_ref"], "request_sha256": model.last_call["request_sha256"], "foundation_text": oracle_arm["foundation_text"], "foundation_refs": oracle_arm["foundation_refs"], "tendency_text": anti_tendency, "memory_text": anti_memory, "memory_tokens": token_count(anti_memory), "canonical_refs": [], "authority": "eval-only, no canonical Delivery/AgentAct/Outcome"}
         freeze_result(output / "raw-answers" / (ref + "-anti.json"), anti)
         pairwise, manipulation = await judge_effect_pairs(instance=instance, rubric=data.expectations[ref]["rubric"], answers={a["mode"]: a["output"] for a in trace["arms"]}, anti_output=anti_output, model=model)
         before_feedback = await settle(prepared.scope, prepared.expected_episodes + 4)

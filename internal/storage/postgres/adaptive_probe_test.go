@@ -67,3 +67,20 @@ func (store *adaptiveProbeStore) AdaptiveFormationOutcomeCount(t *testing.T, ver
 	}
 	return count
 }
+
+func (store *adaptiveProbeStore) AdaptiveFeedbackBasisCounts(t *testing.T, version, episode, outcome string) map[string]int {
+	t.Helper()
+	counts := make(map[string]int)
+	for _, item := range []struct{ key, query, ref string }{
+		{"reenactment", "SELECT count(*) FROM seed_basis_links WHERE seed_version_ref = $1 AND episode_ref = $2 AND role = 'reenactment'", episode},
+		{"inhibition_episode", "SELECT count(*) FROM seed_basis_links WHERE seed_version_ref = $1 AND episode_ref = $2 AND role = 'inhibition'", episode},
+		{"inhibition_outcome", "SELECT count(*) FROM seed_outcome_basis_links WHERE seed_version_ref = $1 AND outcome_event_ref = $2 AND role = 'inhibition'", outcome},
+	} {
+		var count int
+		if err := store.database.QueryRow(context.Background(), item.query, version, item.ref).Scan(&count); err != nil {
+			t.Fatal(err)
+		}
+		counts[item.key] = count
+	}
+	return counts
+}

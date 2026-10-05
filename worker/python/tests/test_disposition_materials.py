@@ -101,6 +101,47 @@ def _request() -> inference_pb2.ProcessConsolidationWindowRequest:
     return request
 
 
+@pytest.mark.parametrize("padding", ["", "  "])
+def test_existing_body_cannot_form_a_second_seed(padding: str) -> None:
+    """A model copying an active response must not create a competing identity."""
+    material = disposition_formation_material(_request())
+    assert material is not None
+    assert material.bind_disposition(padding + material.existing_dispositions[0] + padding) == ""
+
+
+def test_formation_keeps_current_user_correction_outside_the_causal_group() -> None:
+    """Cropping a positive group must not hide a current lasting correction."""
+    request = _request()
+    correction = request.evidence.episodes.add(
+        episode_ref="episode-correction",
+        session_ref="session-correction",
+        origin="current",
+    )
+    correction.sources.add(
+        source_ref="source-correction-user",
+        role="situation",
+        actor_kind="user",
+        actor_ref="user-private",
+        text="In future when overwhelmed, ask which result matters before assigning any action.",
+    )
+    correction.sources.add(
+        source_ref="source-correction-agent",
+        role="agent_act",
+        actor_kind="agent",
+        text="Agent-only suggestion must not enter current USER context.",
+    )
+    material = disposition_formation_material(request)
+    assert material is not None
+    model_input = build_disposition_formation_input(material)
+    assert "> In future when overwhelmed, ask which result matters before assigning any action." in model_input
+    assert "Agent-only suggestion" not in model_input
+    assert "source-correction-user" not in model_input
+    assert "episode-correction" not in model_input
+    assert material.basis_refs == (
+        "episode-current", "outcome-current", "episode-related", "outcome-related",
+    )  # Context does not manufacture formation support or a second experience.
+
+
 def test_paired_material_hides_refs_and_binds_core_owned_protocol() -> None:
     material = disposition_formation_material(_request())
 
@@ -163,7 +204,7 @@ def test_focused_rules_do_not_invert_repeated_failure_into_a_new_seed() -> None:
     assert "never invert the failed response" in model_input.lower()
 
 
-def test_paired_material_ignores_unmarked_mixed_window_evidence() -> None:
+def test_paired_material_keeps_unmarked_context_out_of_formation_support() -> None:
     request = _request()
     noise = request.evidence.episodes.add(
         episode_ref="episode-noise",
@@ -204,7 +245,8 @@ def test_paired_material_ignores_unmarked_mixed_window_evidence() -> None:
         "outcome-related",
     )
     model_input = build_disposition_formation_input(material)
-    assert "I bought a new lamp" not in model_input
+    assert "> I bought a new lamp." in model_input.split("CURRENT_USER_CONTEXT_END")[0]
+    assert "I bought a new lamp" not in model_input.split("EXPERIENCES_BEGIN")[1]
     assert "The room looks brighter" not in model_input
 
 

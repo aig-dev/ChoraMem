@@ -153,6 +153,11 @@ outcome-b
 
 ## 内部 Worker 的来源快照
 
+再现依据不能重复计入。已消费 Episode 默认退出反馈候选；后来到达的非 Agent Outcome 只有在
+未用于该版本、且匹配原 Episode 实际 Delivery 时，才重新开放这一因果对用于 TEXT/INHIBIT。
+窗口中的 Target 局部 RECORDED_EPISODE 是已有 Basis 的派生提示，阻止重复 REENACT；Core 仍
+独立校验和幂等提交。INHIBIT 追加配对依据，不创建新版本；已退休版本不会自动接受新结果。
+
 内部 `ProcessConsolidationWindowRequest` 在原四个字段之外，可携带 `evidence` 来源快照。
 它由同一次 CoreStore 读取直接构造，不从 `window_text` 反解：Episode 保留真实 ref、session、
 `current / related / revision_anchor` 来源类别及逐条 Source 的角色、actor 身份和完整原文。
@@ -165,6 +170,10 @@ Outcome 只携带两类实际展示的条目：既有 Seed 精确反馈链中已
 冻结窗口内、与完整 Episode 配对并可支持 `NEW_DISPOSITION` 的非 Agent Outcome。普通无配对
 Outcome links、无资格的既有 Seed 反馈和 direct-only Seed 未展示的历史 anchors 不进入该快照。
 两种数据库采用相同的可见性边界。
+
+focused 形成材料只用 Core 标记的完整跨 session 因果组补回 Basis，另保留当前 USER Situation
+的引用上下文，避免已纠正的历史反应再次初生。上下文不增加形成资格或成功证据。绑定器拒绝与
+已知活跃倾向正文完全相同的新输出；跨改写的同义和冲突仍需模型判断，不能由字符串检验保证。
 
 这些字段保留的是程序已有的来源归属，不是模型生成的 JSON，也不增加写入资格。结构化正文、
 身份和类别共同参与提交前快照 hash 与请求预算；旧窗口文本也保留，因此新增表示占用内部传输

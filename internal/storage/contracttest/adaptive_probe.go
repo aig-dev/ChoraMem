@@ -14,6 +14,7 @@ type adaptiveStoreProbe interface {
 	AdaptiveJobUpdatedAt(*testing.T) time.Time
 	AdaptiveCounts(*testing.T, string, string, string) map[string]int
 	AdaptiveFormationOutcomeCount(*testing.T, string, string) int
+	AdaptiveFeedbackBasisCounts(*testing.T, string, string, string) map[string]int
 }
 
 type unavailableAdaptiveIndex struct{ scriptedIndex }

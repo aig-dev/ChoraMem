@@ -162,7 +162,16 @@ func loadFeedbackState(ctx context.Context, querier consolidationQuerier, episod
 		}
 	}
 
-	for _, target := range targets {
+	// An Episode's reenactment may be consumed before its real result arrives.
+	// Retain exact Delivery attribution while excluding old evidence by default.
+	deliveredReceipts := make(map[string]map[string]map[string]struct{}, len(targets))
+	recordedOutcomes := make(map[string]map[string]struct{}, len(targets))
+	for versionRef, target := range targets {
+		deliveredReceipts[versionRef] = make(map[string]map[string]struct{}, len(target.Receipts))
+		for episodeRef, receipts := range target.Receipts {
+			deliveredReceipts[versionRef][episodeRef] = receipts
+		}
+		recordedOutcomes[versionRef] = make(map[string]struct{})
 		rows, err := querier.Query(ctx, `
 			SELECT basis.role, basis.episode_ref
 			FROM seed_basis_links AS basis
@@ -183,9 +192,9 @@ func loadFeedbackState(ctx context.Context, querier consolidationQuerier, episod
 			if role == "formation" || role == "revision" {
 				target.Anchors[ref] = struct{}{}
 			}
-			// A feedback Episode contributes to a SeedVersion once. Keeping an
-			// already-consumed Episode eligible makes an overlapping later window
-			// re-submit old evidence and can atomically reject genuinely new feedback.
+			// Exclude consumed feedback by default. A new exact paired Outcome
+			// can reopen the Episode below for result-based revision/inhibition;
+			// it never authorizes a second reenactment of the same Episode.
 			if role == "reenactment" || role == "inhibition" {
 				delete(target.Episodes, ref)
 				delete(target.Receipts, ref)
@@ -214,6 +223,7 @@ func loadFeedbackState(ctx context.Context, querier consolidationQuerier, episod
 				return nil, nil, storageError("scan feedback Outcome Basis state", err)
 			}
 			target.BasisState[feedbackBasisStateKey("outcome", role, ref)] = struct{}{}
+			recordedOutcomes[versionRef][ref] = struct{}{}
 		}
 		if err := rows.Err(); err != nil {
 			rows.Close()
@@ -271,9 +281,14 @@ func loadFeedbackState(ctx context.Context, querier consolidationQuerier, episod
 			return nil, nil, consolidation.ErrInvalidWindow
 		}
 		outcomes[ref] = outcome
-		for _, target := range targets {
-			receipts := target.Receipts[outcome.EpisodeRef]
-			if outcome.ActorKind != ledger.ActorKindAgent && intersectsRefs(outcome.DeliveryRefs, receipts) {
+		for versionRef, target := range targets {
+			receipts := deliveredReceipts[versionRef][outcome.EpisodeRef]
+			if outcome.ActorKind != ledger.ActorKindAgent &&
+				!hasRef(recordedOutcomes[versionRef], ref) && intersectsRefs(outcome.DeliveryRefs, receipts) {
+				// A fresh trusted result reopens only its real delivered pair.
+				// It does not authorize another reenactment of the same Episode.
+				target.Episodes[outcome.EpisodeRef] = struct{}{}
+				target.Receipts[outcome.EpisodeRef] = receipts
 				target.Outcomes[ref] = struct{}{}
 				target.OutcomeEpisodes[ref] = outcome.EpisodeRef
 			}
@@ -397,6 +412,10 @@ func consolidationWorkerRequest(
 		}
 		for _, episodeRef := range sortedMapKeys(target.Episodes) {
 			fmt.Fprintf(&text, "FEEDBACK_EPISODE %s\n", episodeRef)
+			if hasRef(target.BasisState, feedbackBasisStateKey("episode", "reenactment", episodeRef)) ||
+				hasRef(target.BasisState, feedbackBasisStateKey("episode", "inhibition", episodeRef)) {
+				fmt.Fprintf(&text, "RECORDED_EPISODE %s\n", episodeRef)
+			}
 			appendBasis(episodeRef)
 		}
 		for _, outcomeRef := range sortedMapKeys(target.Outcomes) {
