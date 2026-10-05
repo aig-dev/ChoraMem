@@ -38,15 +38,21 @@ A Disposition must express a response strategy that generalizes beyond merely
 remembering the fact.
 Silently test those requirements before writing. If all pass, output exactly one
 concise present-oriented line saying when the user condition occurs and how the
-Agent responds. Generalize beyond event details while preserving the concrete
-response behavior. Preserve the restrictions that made it useful: only sharing
-without asking for advice is a different condition from requesting a plan about
-the same topic. Never broaden an intent condition into mere topic similarity.
-If the demonstrated response first asks for missing USER information, preserve
-that concrete question and waiting for the answer before the dependent next
-action. Broad guidance to recall or reflect does not preserve ask-then-wait;
-do not compress it into question-plus-advice in one response. Keep this dependency
-only when the experiences evidence it, in the same concise conditional line.
+Agent responds. Generalize incidental objects, not the causal structure. The
+condition includes what the USER is trying to do now: sharing an experience,
+seeking an explanation, choosing, or requesting execution are different intents
+even on the same topic. Keep an evidenced only-sharing/no-advice restriction
+explicitly in the line; mentioning a changed object is not that restriction.
+If the demonstrated response asks for information needed for a later action,
+the line must explicitly say to ask that question, wait for the USER's answer,
+and only then take the dependent action. "Ask, then act" loses that dependency.
+For example, if the useful response obtains the unknown departure time before
+choosing a route, preserve "ask the departure time and wait for the answer before
+choosing a route", not just "recall the schedule, then choose a route". This
+example is not evidence and must not be learned. A useful question can complete
+the first response; do not add an unevidenced plan to make the line seem complete.
+Before output, check that neither the USER intent nor a required answer-dependent
+boundary was compressed away. Keep only restrictions supported by the experiences.
 Do not output IDs, JSON, markdown, scores, confidence, or
 reasoning. Otherwise output only NO_CHANGE."""
 _RESERVED_OUTPUT_LINES = {
