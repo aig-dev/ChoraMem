@@ -39,7 +39,15 @@ remembering the fact.
 Silently test those requirements before writing. If all pass, output exactly one
 concise present-oriented line saying when the user condition occurs and how the
 Agent responds. Generalize beyond event details while preserving the concrete
-response behavior. Do not output IDs, JSON, markdown, scores, confidence, or
+response behavior. Preserve the restrictions that made it useful: only sharing
+without asking for advice is a different condition from requesting a plan about
+the same topic. Never broaden an intent condition into mere topic similarity.
+If the demonstrated response first asks for missing USER information, preserve
+that concrete question and waiting for the answer before the dependent next
+action. Broad guidance to recall or reflect does not preserve ask-then-wait;
+do not compress it into question-plus-advice in one response. Keep this dependency
+only when the experiences evidence it, in the same concise conditional line.
+Do not output IDs, JSON, markdown, scores, confidence, or
 reasoning. Otherwise output only NO_CHANGE."""
 _RESERVED_OUTPUT_LINES = {
     "TARGET",

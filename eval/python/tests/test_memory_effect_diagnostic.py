@@ -26,6 +26,23 @@ def test_diagnostic_has_separate_heldout_replay_and_frozen_calibration():
     assert all(len(i.history_sessions) == 6 for i in data.instances)
 
 
+def test_long_capacity_cohort_is_independent_and_keeps_the_frozen_protocol():
+    api = _api()
+    original = api.load_diagnostic(DATA)
+    path = DATA.with_name("memory-effect-capacity-v2.json")
+    capacity = api.load_diagnostic(path)
+    assert capacity.source_sha256 != original.source_sha256
+    assert len(capacity.instances) == 8 and len(capacity.negative_controls) == 4
+    assert capacity.calibration == original.calibration
+    assert not {i.current_request for i in capacity.instances} & {i.current_request for i in original.instances}
+    for instance in capacity.instances:
+        assert len(instance.history_sessions) == 6
+        for session in instance.history_sessions:
+            text = "\n".join((session.situation, session.agent_act, session.outcome))
+            assert len(session.situation) > 600
+            assert len(text.encode("utf-8")) < 8192
+
+
 @pytest.mark.parametrize("mutation", [
     lambda d: d["trajectories"].pop(),
     lambda d: d["negative_controls"].pop(),
