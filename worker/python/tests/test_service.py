@@ -1649,3 +1649,31 @@ async def test_untagged_primary_change_cannot_poison_bound_formation_and_facts(t
     assert '\nCHANGE\nThe user lives' not in response.tagged_text
     assert 'lane=primary status=rejected_format' in caplog.text
     assert len(model.calls) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("separator", ["；", ";", "。"])
+async def test_fallback_does_not_duplicate_a_complete_primary_clause(separator: str) -> None:
+    request = _typed_recollection_request()
+    request.evidence.episodes[0].sources[0].text = "我的店铺搬到南桥，东桥是旧址；我周五负责读书会。我的鸟叫桃子。"
+    clause = "用户的店铺在南桥，东桥是旧址"
+    primary = "TARGET\nrecollection-existing@1\nAPPLICATION\nOTHER\nCHANGE\nTEXT\n" + clause + separator + "用户周五负责读书会。\nBASIS\nepisode-current"
+    model = SequenceTextModel([primary, clause + "。\n用户的鸟叫桃子。"])
+    result = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert result.tagged_text.startswith(primary)
+    assert result.tagged_text.count(clause) == 1
+    assert "用户的鸟叫桃子。" in result.tagged_text
+    assert result.tagged_text.count("TARGET\nNEW_RECOLLECTION") == 1
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
+async def test_fallback_clause_guard_does_not_remove_a_prefix_or_new_qualified_fact() -> None:
+    request = _typed_recollection_request()
+    body = "用户在南桥工作，且只在本周临时值班。"
+    request.evidence.recollections[0].text = body
+    new_fact = "用户在南桥工作，并且现在每天负责开门。"
+    model = SequenceTextModel(["NO_CHANGE", new_fact])
+    result = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert new_fact in result.tagged_text
+    assert result.tagged_text.count("TARGET\nNEW_RECOLLECTION") == 1

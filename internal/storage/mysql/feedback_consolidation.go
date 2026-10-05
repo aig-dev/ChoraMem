@@ -294,7 +294,86 @@ func loadFeedbackState(ctx context.Context, querier consolidationQuerier, episod
 			}
 		}
 	}
+	for ref, target := range targets {
+		unused, err := unusedDirectEpisodes(ctx, querier, target, episodes)
+		if err != nil {
+			return nil, nil, err
+		}
+		target.DirectEpisodes = unused
+		if len(target.DirectEpisodes) == 0 && len(target.Episodes) == 0 {
+			delete(targets, ref) // Keep only a read-only active catalogue hint.
+		}
+	}
 	return targets, outcomes, nil
+}
+
+// A direct correction is one physical authority, not a fresh instruction on
+// every overlapping window or new run. Revision history remains append-only.
+func unusedDirectEpisodes(ctx context.Context, querier consolidationQuerier, target *feedbackTarget, episodes []episodeEvidence) (map[string]struct{}, error) {
+	if len(target.DirectEpisodes) == 0 || target.VersionNumber == 1 {
+		// Canonical first versions have only formation Basis, no revision history.
+		return target.DirectEpisodes, nil
+	}
+	rows, err := querier.Query(ctx, `
+		SELECT DISTINCT e.session_ref, link.source_event_ref
+		FROM seed_versions AS version
+		JOIN seed_basis_links AS basis
+		  ON basis.tenant_ref = version.tenant_ref
+		 AND basis.seed_version_ref = version.seed_version_ref
+		 AND basis.role = 'revision'
+		JOIN episodes AS e
+		  ON e.tenant_ref = basis.tenant_ref
+		 AND e.episode_ref = basis.episode_ref
+		JOIN episode_links AS link
+		  ON link.tenant_ref = e.tenant_ref
+		 AND link.scope_kind = e.scope_kind
+		 AND link.agent_ref = e.agent_ref
+		 AND link.relationship_ref = e.relationship_ref
+		 AND link.session_ref = e.session_ref
+		 AND link.run_ref = e.run_ref
+		 AND link.source_group_ref = e.source_group_ref
+		 AND link.episode_ref = e.episode_ref
+		 AND link.role = 'situation'
+		WHERE version.tenant_ref = $1 AND version.seed_ref = $2
+		  AND e.scope_kind = $3 AND e.agent_ref = $4 AND e.relationship_ref = $5
+		ORDER BY e.session_ref, link.source_event_ref
+	`, target.Owner.TenantRef, target.SeedRef, target.Owner.Kind, target.Owner.AgentRef, target.Owner.RelationshipRef)
+	if err != nil {
+		return nil, storageError("load consumed direct Source identity", err)
+	}
+	defer rows.Close()
+	used := make(map[[2]string]struct{})
+	for rows.Next() {
+		var sessionRef, sourceRef string
+		if err := rows.Scan(&sessionRef, &sourceRef); err != nil {
+			return nil, storageError("scan consumed direct Source identity", err)
+		}
+		used[[2]string{sessionRef, sourceRef}] = struct{}{}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, storageError("iterate consumed direct Source identity", err)
+	}
+	// Each Target gets its own derived permissions; never mutate the shared
+	// initial current-Episode map and consume a sibling's authority.
+	unused := make(map[string]struct{}, len(target.DirectEpisodes))
+	for _, episode := range episodes {
+		if !hasRef(target.DirectEpisodes, episode.Ref) {
+			continue
+		}
+		consumed := false
+		for _, source := range episode.Sources {
+			if source.Role == ledger.RoleSituation && source.ActorKind == ledger.ActorKindUser {
+				if _, exists := used[[2]string{episode.SessionRef, source.Ref}]; exists {
+					consumed = true
+					break
+				}
+			}
+		}
+		if !consumed {
+			unused[episode.Ref] = struct{}{}
+		}
+	}
+	return unused, nil
 }
 
 func consolidationWorkerRequest(

@@ -158,6 +158,12 @@ outcome-b
 窗口中的 Target 局部 RECORDED_EPISODE 是已有 Basis 的派生提示，阻止重复 REENACT；Core 仍
 独立校验和幂等提交。INHIBIT 追加配对依据，不创建新版本；已退休版本不会自动接受新结果。
 
+同一个不可变 USER Situation 来源已用于该 Seed 的 revision 后，重叠窗口或新 run 不能再次
+把它作为 DIRECT_EPISODE 授权 ADAPT。资格从该 Seed 的追加式 revision 历史推导，按完整
+owner＋Session＋Source ref 区分身份；另一个 Seed 和另一个 Session 的来源不被连带消费。
+模型依然判断新来源是否是本人长期要求；新精确 Outcome 仍走结果反馈资格。未获得写入资格的
+活跃倾向保留只读 catalogue hint，避免失去形成去重上下文。没有新增权威状态或模型调用。
+
 内部 `ProcessConsolidationWindowRequest` 在原四个字段之外，可携带 `evidence` 来源快照。
 它由同一次 CoreStore 读取直接构造，不从 `window_text` 反解：Episode 保留真实 ref、session、
 `current / related / revision_anchor` 来源类别及逐条 Source 的角色、actor 身份和完整原文。

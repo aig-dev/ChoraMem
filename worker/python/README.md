@@ -140,6 +140,9 @@ Recollection-only 剩余事实调用；主结果的一条 KEEP／TEXT 不关闭�
 sources，因此 Core 也只把这些模型可见的当前 Episode 绑定为 Basis；相关旧 Episode
 仍可供统一 tagged-text Worker 使用，但不会被虚构成后备正文的来源。混入协议词的
 可持久部分则作废。
+后备绑定器还排除已覆盖正文中的完整字面分句，以免主 pass 已合并的事实被拆出来重复初生。
+该保护只识别分号、中文句号和换行边界及末尾句点，不按逗号拆分，不推断省略的条件、主体或
+跨改写同义关系；主结果保留，只有重复的后备行被省略。复杂语义覆盖仍由模型判断。
 当 Core 在 typed evidence 中明确标出一个当前 `formation_role=anchor` 与至少一个较早
 `formation_role=candidate`，且这些 Episode 全部具有不同 session、实际 AgentAct 与唯一配对
 non-Agent Outcome 时，`disposition_formation_material(request)` 才会构造不含 refs 的
@@ -159,6 +162,9 @@ candidate 的 `origin` 可为 `related`，也可为 scheduler overlap 带入的 
 
 反馈输出逐完整 Target 块归一，其他主结果保留；兼容 Core 已支持的行内 TEXT／ADAPT 正文。本人长期纠正的既有 ADAPT 不按反馈归一。
 一次 recovery 只提供尚未处理的合格既有 Target，完成的 Target 不会重复提交。主 pass 漏掉既有长期纠正时，同一 recovery 可处理 Core 已提供的 `ELIGIBLE_ADAPTATION`：模型判断本人明确的超出当前任务的长期要求，`ADAPT` 只能引用该 Target 自己的一份 `DIRECT_EPISODE`，不借用其他目标／Outcome，不拼接多个直接依据，也不能初生新 Seed。没有长期要求时仍按原行为反馈规则或 no-change 处理；调用上限不变。
+ADAPT 只修改本人要求改变的部分，未被明确替换的适用条件必须保留；“仅在某情境”不能扩成
+同话题下的所有任务。已用于该 Seed 修订的同一 USER 来源，不因重叠窗口或换 run 再获直接资格；
+Core 用既有 revision 来源账推导，Worker 仍只引用该 Target 本次实际提供的 DIRECT_EPISODE。
 Core 仍校验每个 Target 的精确 Basis；反馈规范化只使用该 Target 已提供的因果对，不借用其他目标的 Outcome，也不授予资格。原始 recovery 输出先受 64 KiB 上限约束。
 已再现的 Episode 默认不再提供反馈资格；新到达且未消费的非 Agent Outcome 若绑定同一实际
 Delivery，Core 可再次提供其精确 Episode/Outcome 对。Target 内的 RECORDED_EPISODE 提示只

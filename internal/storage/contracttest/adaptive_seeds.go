@@ -423,6 +423,76 @@ func RunAdaptiveSeeds(t *testing.T, factory IndexedFactory) {
 		})
 	}
 
+	for _, mode := range []string{"same_episode", "new_run_same_source", "same_literal_other_session"} {
+		t.Run("direct_authority_is_consumed_per_seed_"+mode, func(t *testing.T) {
+			s := newScenario(migratedIndexedStore(t, factory, &scriptedIndex{}))
+			one, _, _ := s.materializeEpisode(t, "authority-form-one", "机制不清又有很多任务")
+			two, _, _ := s.materializeEpisode(t, "authority-form-two", "又被机制和任务绕住")
+			form := func(job, body string) string {
+				r, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: job, EpisodeRefs: []string{one, two}},
+					textWorker(taggedChange(consolidation.TargetNewDisposition, consolidation.ApplicationRelation, consolidation.ChangeText, body, one, two)))
+				if err != nil || len(r.DispositionVersionRefs) != 1 {
+					t.Fatalf("form authority fixture: %#v, %v", r, err)
+				}
+				return r.DispositionVersionRefs[0]
+			}
+			target := form("authority-form-target", "机制不清时先给具体对照")
+			sibling := form("authority-form-sibling", "任务过多时先选一件事")
+			scope := s.scope
+			scope.SessionRef = s.prefix + "-authority-session"
+			user := s.eventInScope("physical-user-correction", scope, ledger.ActorKindUser, "以后机制不清时先问我观察到了什么，再给对照")
+			materialize := func(suffix string, event ledger.SourceEvent) string {
+				run, group := s.prefix+"-authority-run-"+suffix, s.prefix+"-authority-group-"+suffix
+				s.observe(t, "authority-user-"+suffix, event, ledger.EpisodeBinding{RunRef: run, SourceGroupRef: group, Role: ledger.RoleSituation})
+				act := s.eventInScope("authority-act-"+suffix, event.Scope, ledger.ActorKindAgent, "好的，我先听你的观察")
+				r := s.observe(t, "authority-act-"+suffix, act, ledger.EpisodeBinding{RunRef: run, SourceGroupRef: group, Role: ledger.RoleAgentAct})
+				return r.EpisodeRef
+			}
+			authority := materialize("first", user)
+			first, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: "authority-first", EpisodeRefs: []string{authority}},
+				textWorker(adaptChange(target, "机制不清时先问观察，再给对照", authority)))
+			if err != nil || len(first.DispositionVersionRefs) != 1 {
+				t.Fatalf("first direct authority: %#v, %v", first, err)
+			}
+			current := first.DispositionVersionRefs[0]
+			candidate := authority
+			if mode == "new_run_same_source" {
+				candidate = materialize("same-source-again", user)
+			} else if mode == "same_literal_other_session" {
+				user.Scope.SessionRef += "-new-physical-source"
+				user.Text = "以后机制不清时先让我讲观察并确认，再给对照"
+				candidate = materialize("fresh-source", user)
+			}
+			worker := &capturingWorker{text: adaptChange(current, "机制不清时先请用户讲清观察并确认，再给对照", candidate)}
+			windowRefs := []string{authority}
+			if candidate != authority {
+				windowRefs = append(windowRefs, candidate)
+			}
+			result, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: "authority-later", EpisodeRefs: windowRefs}, worker)
+			want := 0
+			if mode == "same_literal_other_session" {
+				want = 1
+			}
+			if err != nil || len(result.DispositionVersionRefs) != want {
+				t.Fatalf("consumed direct authority (%s): %#v, %v; want %d new versions", mode, result, err, want)
+			}
+			if !strings.Contains(worker.request.WindowText, "ELIGIBLE_ADAPTATION "+sibling) {
+				t.Fatalf("one Target consumed the sibling's authority:\n%s", worker.request.WindowText)
+			}
+			if want == 0 && (strings.Contains(worker.request.WindowText, "ELIGIBLE_ADAPTATION "+current) || !strings.Contains(worker.request.WindowText, "ACTIVE_DISPOSITION_HINT "+current)) {
+				t.Fatalf("consumed Target permission or catalogue visibility is wrong:\n%s", worker.request.WindowText)
+			}
+			if want == 1 {
+				// Authority used before an intervening revision remains consumed.
+				r, err := s.store.ConsolidateWindow(testContext(t), consolidation.Window{JobRef: "authority-old-after-new", EpisodeRefs: []string{authority}},
+					textWorker(adaptChange(result.DispositionVersionRefs[0], "换一句旧要求的表述", authority)))
+				if err != nil || len(r.DispositionVersionRefs) != 0 {
+					t.Fatalf("historical authority reopened after fresh revision: %#v, %v", r, err)
+				}
+			}
+		})
+	}
+
 	// A lexical LIMIT before ranking loses a clearly relevant existing Seed.
 	// Exercise real intake, candidate rendering and commit with no useful index.
 	for _, mode := range []string{"none", "empty", "unavailable"} {

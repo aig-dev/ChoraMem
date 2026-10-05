@@ -87,9 +87,9 @@ async def prepare_effect_trajectory(*, instance: DelayedSeedInstance, evaluation
 
 
 def effect_arm_order(instance_ref: str) -> tuple[str, ...]:
-    """Hash-fixed permutation, cyclic positions balanced across r1..r8."""
+    """Hash-fixed permutation, balanced across both frozen eight-case cohorts."""
     order = sorted(ARMS, key=lambda arm: sha256_text(PROTOCOL + ":order:" + arm))
-    match = re.fullmatch(r"r([1-8])", instance_ref)
+    match = re.fullmatch(r"[rd]([1-8])", instance_ref)
     offset = (int(match[1]) - 1) % 4 if match else int(sha256_text(instance_ref)[:8], 16) % 4
     return tuple(order[offset:] + order[:offset])
 
