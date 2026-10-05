@@ -64,7 +64,7 @@ async def test_focused_call_checks_matching_primary_text_without_borrowing_autho
 
 @pytest.mark.asyncio
 @pytest.mark.parametrize("corruption", [
-    "application", "missing_basis", "extra_basis", "duplicate_basis",
+    "application", "missing_episode", "extra_basis", "duplicate_basis",
     "adapt", "ambiguous", "oversize", "reference_in_body", "multiline", "inline_extra",
 ])
 async def test_primary_text_cannot_bias_another_group_or_smuggle_refs(corruption):
@@ -76,8 +76,8 @@ async def test_primary_text_cannot_bias_another_group_or_smuggle_refs(corruption
     )
     if corruption == "application":
         primary = primary.replace("\nRELATION\n", "\nSELF\n")
-    elif corruption == "missing_basis":
-        primary = primary.replace("\noutcome-related", "")
+    elif corruption == "missing_episode":
+        primary = primary.replace("\nepisode-related", "")
     elif corruption == "extra_basis":
         primary += "\nepisode-unoffered"
     elif corruption == "duplicate_basis":
@@ -99,6 +99,26 @@ async def test_primary_text_cannot_bias_another_group_or_smuggle_refs(corruption
     assert proposed not in model.calls[1]
     assert "Which deadline has the biggest consequence?" in model.calls[1]
     assert "That one question helped." in model.calls[1]
+    assert len(model.calls) == 3
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("outcome_refs", ["", "\noutcome-current"])
+async def test_primary_episode_membership_is_enough_for_untrusted_text_only(outcome_refs):
+    request = _paired_formation_request()
+    proposed = "When overwhelmed, ask which consequence matters and wait for the answer."
+    primary = (
+        "TARGET\nNEW_DISPOSITION\nAPPLICATION\nRELATION\nCHANGE\n" + proposed
+        + "\nBASIS\nepisode-current\nepisode-related" + outcome_refs
+    )
+    model = SequenceTextModel([primary, proposed, "NO_CHANGE"])
+    result = await InferenceService(model).ProcessConsolidationWindow(request, None)
+    assert "> " + proposed in model.calls[1]
+    assert "That one question helped." in model.calls[1]
+    assert "That narrowed the noise immediately." in model.calls[1]
+    assert set(result.tagged_text.split("\nBASIS\n")[1].splitlines()) == set(request.allowed_basis_refs)
+    for ref in request.allowed_basis_refs:
+        assert ref not in model.calls[1]
     assert len(model.calls) == 3
 
 

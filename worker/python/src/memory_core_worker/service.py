@@ -604,6 +604,8 @@ def _matching_primary_formation_text(request, material, text: str) -> str:
     if not starts or any(lines[:starts[0]]):
         return ""
     starts.append(len(lines))
+    group = set(material.basis_refs)
+    group_episodes = group & {episode.episode_ref for episode in request.evidence.episodes}
     known_refs = set(request.allowed_basis_refs) | set(request.allowed_target_refs)
     for episode in request.evidence.episodes:
         known_refs.update((episode.episode_ref, episode.session_ref))
@@ -631,7 +633,8 @@ def _matching_primary_formation_text(request, material, text: str) -> str:
         if (len(content) != 1 or not content[0]
                 or len(content[0].encode("utf-8")) > 4096
                 or len(basis) != len(set(basis))
-                or set(basis) != set(material.basis_refs)
+                or not set(basis) <= group
+                or set(basis) & group_episodes != group_episodes
                 or any(ref in content[0] for ref in known_refs)):
             continue
         bodies.append(content[0])

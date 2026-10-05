@@ -28,6 +28,9 @@ If an evidenced boundary is only implicit in that sentence, make it explicit:
 would it let the Agent advise before the USER answers, act under a different
 intent, or do something the outcomes explicitly valued avoiding? Correct that
 specific loss, then output only the source-supported conditional line.
+If that proposed sentence is already fully supported and preserves those
+boundaries, output its text. NO_CHANGE means no new supported tendency, not
+merely that an uncommitted sentence needs no editing.
 A durable response tendency exists only if every experience independently shows
 the same conditional pattern:
 - the same kind of user condition recurs;
