@@ -356,7 +356,10 @@ def diagnostic_review_template(data: DiagnosticData, record: Mapping) -> dict:
     from .memory_effect_cli import json_sha256
     ref = record["case_ref"]
     fields = ("formation", "target_behavior") if ref in data.counterfactuals else ("formation", "meaning")
-    return {"case_ref": ref, "record_sha256": json_sha256(record), "checks": {k: {"expectation": data.expectations[ref][k], "passed": None, "note": ""} for k in fields}}
+    expected = {key: data.expectations[ref][key] for key in fields}
+    if ref in data.counterfactuals:
+        expected.update({f"response_check_{index}": clause for index, clause in enumerate(data.expectations[ref]["checks"], 1)})
+    return {"case_ref": ref, "record_sha256": json_sha256(record), "checks": {key: {"expectation": value, "passed": None, "note": ""} for key, value in expected.items()}}
 
 
 def validate_diagnostic_reviews(data: DiagnosticData, records: Sequence[Mapping], reviews: Sequence[Mapping]) -> None:
@@ -464,7 +467,7 @@ def summarize_diagnostic(data: DiagnosticData, records: Sequence[Mapping], revie
         negative.append({"case_ref": ref, "active_dispositions": sum(s["status"] == "active" for s in record["after"].get("dispositions", []))})
     if claimed != {c["attempt_ref"] for c in completed if not c.get("rpc_ref")}:
         raise ValueError("diagnostic unbound or missing non-Worker actual attempts")
-    semantics = [{"case_ref": r["case_ref"], "passed": all(c["passed"] for c in r["checks"].values()), "failed_checks": [k for k, c in r["checks"].items() if not c["passed"]]} for r in reviews]
+    semantics = [{"case_ref": r["case_ref"], "passed": all(c["passed"] for c in r["checks"].values()), "failed_checks": sorted(k for k, c in r["checks"].items() if not c["passed"])} for r in reviews]
     return {"protocol": PROTOCOL, "data_sha256": data.source_sha256, "calibration": calibration, "model_inventory": inventory, "rpc_inventory": rpc_inventory, "oracle": oracle_gate(base_winners, anti_winners), "common": common, "negative_controls": negative, "semantics": semantics, "all_semantics_pass": all(r["passed"] for r in semantics), "synthetic_only": True}
 
 

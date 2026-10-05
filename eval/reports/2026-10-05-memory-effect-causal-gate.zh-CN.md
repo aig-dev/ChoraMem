@@ -1,6 +1,6 @@
 # 五方向记忆效果优化：共同因果验证
 
-日期：2026-10-05。状态：工程修复已验证，完整公开行为诊断已完成多轮；formation 处理能力诊断已保留完整与部分失败；最终整组审查待执行。
+日期：2026-10-05。状态：工程修复已验证，完整公开行为诊断已完成多轮；formation 处理能力诊断已保留完整与部分失败；最终整组审查完成，唯一Important已一轮TDD修复；完整复核9/12，归档与goal状态结算中。
 
 目标是使有来源的经历改善未来理解和回应，并在新证据出现后修正。保存文本、形成 Seed、模型再现旧回应和用户获益是不同结果；本报告不把其中一项代替另一项。实现保持 Episode、Recollection、Disposition、外生 Constitution 和现有因果账，没有增加 confidence、强度、治理状态或新的 Memory 类型。
 
@@ -92,7 +92,7 @@ e771c6e：full Core `go test ./...` 和 `go vet ./...` 通过；迁移后的 Pos
 
 当前 `8570b43` 工程门：完整Python793通过/13可选跳过2.19s；fresh生产Worker199通过/11可选跳过1.46s、codegen/clean wheel/license与Go→Python0.498s通过。最新未缓存full Core Go与vet通过；真实迁移后PostgreSQL20.613s Store＋0.360s RPC、MySQL44.943s Store＋0.532s RPC通过。Go/两Store/公开协议自e771c6e无新行为改动，后续只改Python形成加工；上述工程证据不替代尚在执行的语义和Oracle验收。
 
-审查、最终验收、完整 Rulings/代价和 artifact 保存位置在共同[执行计划](../../docs/superpowers/plans/2026-10-05-memory-effect-causal-gate.md)及最终 evidence 文档中结算。goal 尚未完成。
+审查、最终验收、完整 Rulings/代价和 artifact 保存位置在共同[执行计划](../../docs/superpowers/plans/2026-10-05-memory-effect-causal-gate.md)及最终 evidence 文档中结算。此处为阶段记录；最终验收及9/12完整复核见报告末节。
 
 第六次原始d4/d6声明回放 `formation-subset-f577703739e9`（8570b43）完成2/2，131模型调用、17Worker RPC，零失败/重试；新校准16/16、旧校准11/16，182源码/数据/二进制哈希吻合，隔离数据库已删除。d4正文明确等USER回答，实际learned只问自然发生的例外并停下，与Oracle平局、胜base。正文的`> `引号前缀保留为格式瑕疵。d6仍缺少两个Outcome共同赞赏的“不替用户解释感受”，初始primary就缺少，focused照抄；actual先情绪解释。learned/base虽赢，learned/Oracle两位置均失败，不能据此覆盖缺失边界。完整八案例Oracle门槛此子集未评估；两份哈希绑定的执行者语义检查与全部原始调用保留。
 
@@ -175,7 +175,7 @@ e771c6e：full Core `go test ./...` 和 `go vet ./...` 通过；迁移后的 Pos
 
 下一修复只改两个已有边界：有暂态草稿时将focused明确为依据全部经历校订、先检查已有覆盖的任务；共同Harness明确倾向对回应方法和信息依赖的作用，并禁止为准确协作角色虚构未提供的个人经历。所有答题臂及反控制使用相同合同，共同调用者/校验器同步；旧共享回答器与PersonaMem/延迟协议不变。失败原文提供语义RED，完整源码冻结后的正负实际回放才提供语义结果。该数据已经检查，结果属于开发诊断，不是新的盲测或自然收益。
 
-最新 `861c3cd / capacity-v2-65cf5701dba4` 完成12/12、499/499模型调用、90/90RPC，零失败/重试/取消；组合校准16/16、legacy11/16。Manifest文件SHA256 `1b55490dfb2a4c4ffbb05e9bc5d6eec8ee21a895b6293d2c8b6c0d9f8ab9c584`；182源码/数据/二进制一致，隔离数据库与运行时清理完成；全部12份执行者检查和实际调用绑定验证通过。语义10/12、负对照4/4。d1本轮先问排除项并等待；d2本轮只形成一个倾向，不能据此保证一般同义去重。d6已补避免情绪分析/方案，但遗漏中性事实先行；实际问从哪讲而非继续/安静选择。d7仍先评价并给验证标准。
+最新 `861c3cd / capacity-v2-65cf5701dba4` 完成12/12、499/499模型调用、90/90RPC，零失败/重试/取消；组合校准16/16、legacy11/16。Manifest文件SHA256 `1b55490dfb2a4c4ffbb05e9bc5d6eec8ee21a895b6293d2c8b6c0d9f8ab9c584`；182源码/数据/二进制一致，隔离数据库与运行时清理完成；原12份检查与实际调用绑定通过，但检查模板遗漏完整行为条款；最新v3逐条绑定及冻结源码复算通过。原两项复核语义10/12（遗漏三条冻结行为标准；最终完整复核修正为9/12），负对照4/4。d1本轮先问排除项并等待；d2本轮只形成一个倾向，不能据此保证一般同义去重。d6已补避免情绪分析/方案，但遗漏中性事实先行；实际问从哪讲而非继续/安静选择。d7仍先评价并给验证标准。
 
 Oracle/base7胜0负1平，Oracle/anti7胜0负1不一致，冻结识别门通过；各自符号概率0.0078125、Wilson95%区间[0.5291,0.9776]，共享Oracle回答。learned/base按原模型flags为7胜0负1不一致，但执行者检查明确保留d7实际失败；d6 Oracle依然虚构曾提及的记忆且无指定选择。工程门806通过/13可选跳过，生产Worker199通过/11可选跳过与桥接已通过。效果检查不改写评分，不宣称自然收益或全goal完成。
 
@@ -199,7 +199,7 @@ Thinking/high capability formation-thinking-8a4e5b64a811 completes12/12 actual p
 
 ## 五方向验收的证据映射
 
-以下指向已有实际回归和公开原文；“通过”限定于该合同／声明样本，未解决的回答行为另列。全部旧raw及运行日志保留在 `.cache/memory-effect-optimizations/` 下对应子计划／common-verification，最终保存清单将绑定每个文件hash。
+以下指向已有实际回归和公开原文；“通过”限定于该合同／声明样本，未解决的回答行为另列。Core旧raw及运行日志保留在 `.cache/memory-effect-optimizations/` 下对应子计划／common-verification；Chorai G2日志保留在其工作树 `.superpowers/runtime/memory-effect-optimizations/g2-verification/`。最终common保存清单将绑定该计划每个文件hash，不删除其他子计划的保存目录。
 
 |要求|工程／生命周期证据|真实链路与剩余限制|
 |---|---|---|
@@ -227,4 +227,16 @@ Thinking/high capability formation-thinking-8a4e5b64a811 completes12/12 actual p
 
 d1的完整公开倾向与实际先问／等待成功；同一轨迹还形成来源支持的“已批准材料只执行”的不同条件倾向，并非同义重复。这个前缀不能替代12例或与旧run合并。静态12包能力结果没有覆盖此时的完整partial-window输入，高模式在现有预算下 **不获生产推荐**；不会为过门扩大token／RPC／lease上限或继续调参。当前default的完整861行为诊断和全部原始失败保持不变。
 
-本轮优化完成的依据遵循最初goal：实际工程缺陷及对应回归、生产生命周期smoke、完整可辨识的行为诊断和诚实局限。正确记忆不必然被模型采用、某些正文仍可丢条件、语义改写去重不稳定，这些都在结论中保留；不把它们改成通过，也不将“模型永远正确”变成该goal的新承诺。严格控制格式修复将用全部90份861真实RPC捕获做当前服务回归，只证明已有观察结果未被这次guard改变，不增加实际模型／自然效果证据。最终独立审查将检验此完成解释与全部边界。
+本轮优化完成的依据遵循最初goal：实际工程缺陷及对应回归、生产生命周期smoke、完整可辨识的行为诊断和诚实局限。正确记忆不必然被模型采用、某些正文仍可丢条件、语义改写去重不稳定，这些都在结论中保留；不把它们改成通过，也不将“模型永远正确”变成该goal的新承诺。严格控制格式修复将用全部90份861真实RPC捕获做当前服务回归，只证明已有观察结果未被这次guard改变，不增加实际模型／自然效果证据。最终独立审查已确认此有界完成解释；唯一Important已修复，并保留d5/d6/d7行为失败。
+
+## 最终验收：完整行为条款与诚实结论
+
+一次fresh-context整组review独立核对182源码／数据、499模型／90RPC、准确origin Job／Basis及g1–g8，重放全部90真实Worker请求保持相同prompt／调用数／tagged输出。reviewer跑812Python／13skip和Core selection；迁移Store、production包装、Chorai健康及生命周期仍是其核对的执行者实跑logs，不能描述为reviewer重启过后端。
+
+唯一Important是验收模板漏掉三条冻结行为标准。d5先解释“多半因为四件事同时压着”再提问，违反第二条；原10/12被高估。已通过RED→GREEN修复模板／完整条款／篡改／未检查／stale拒绝和JSON顺序稳定性，最终全Python821通过／13可选跳过。追加完整复核v3对所有12例逐项检查并绑定原record hash：**9/12符合全部要求（正例5/8，负对照4/4），d5/d6/d7失败**。d5顺序错误，d6正文及回答遗漏事实／选择，d7抽象倾向和先评判／测试仍在。不是新模型实验，也不是人类盲评。
+
+原manifest、数据、全部模型flags／请求／回复／旧semantic-reviews及summary一字未改。v3冻结75份assessment源码并精确复算，记录SHA256和原文件hash；v2的第一次严格复算发现JSON key-order导致failed-check列表次序不同，该失败也保留。Oracle原模型协议分数仍为两比较7胜／0负，通过冻结识别门；learned/base7胜的flags不能覆盖这三项实际行为失败，更不能当绝对语义正确率。
+
+追加文件位于common-verification/live/capacity-v2-65cf5701dba4/：semantic-reviews.complete-checks-v3.json SHA256d7eff4efe652ff7037aceb52bc74847e0bb38e2b4c2a97779db29b2f9ac77055，reviewed-summary.complete-checks-v3.json SHA25601ac6def420842e2c7695678ee91a073ca2f93e3c0d506b5d5fe901cd7d814c6，complete-checks-v3-provenance.json SHA256d9bf61235f2d8bd6699f8c66d332a265552aaf6fe1c948a9fdddd754734beeba。
+
+完成范围限于最初goal的五方向具体修复、生产生命周期smoke、完整可辨识诊断和诚实效果结论。保留回应遵从／纠正延迟／同义去重／初窗口事实遗漏的限制，高模式公开run仍FAILED_INCOMPLETE且拒绝生产推荐，所有实验不可混分母。没有确认自然分布长期收益、通用模型遵从或产品整体优越性。Core-first单writer升级、forget仅派生不使用而非物理清除、reviewer只读权限的边界均作为final Rulings保存。

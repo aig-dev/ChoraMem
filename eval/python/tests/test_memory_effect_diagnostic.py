@@ -386,6 +386,56 @@ def test_diagnostic_memory_review_binds_each_committed_record_and_condition():
         api.validate_diagnostic_reviews(data, records, reviews)
 
 
+@pytest.mark.parametrize("dataset", [DATA, DATA.with_name("memory-effect-capacity-v2.json")])
+def test_diagnostic_review_template_includes_every_frozen_response_clause(dataset):
+    api = _api()
+    data = api.load_diagnostic(dataset)
+    for instance in data.instances:
+        ref = instance.instance_ref
+        review = api.diagnostic_review_template(data, {"case_ref": ref})
+        expected = data.expectations[ref]
+        assert set(review["checks"]) == {"formation", "target_behavior", "response_check_1", "response_check_2", "response_check_3"}
+        for index, clause in enumerate(expected["checks"], 1):
+            assert review["checks"][f"response_check_{index}"] == {"expectation": clause, "passed": None, "note": ""}
+    for instance in data.negative_controls:
+        assert set(api.diagnostic_review_template(data, {"case_ref": instance.instance_ref})["checks"]) == {"formation", "meaning"}
+
+
+def test_diagnostic_review_rejects_original_abbreviated_response_assessment():
+    api = _api()
+    data = api.load_diagnostic(DATA.with_name("memory-effect-capacity-v2.json"))
+    records = [dict(case_ref=i.instance_ref, kind="common" if i in data.instances else "negative", input_sha256=api.diagnostic_input_sha256(i)) for i in data.instances + data.negative_controls]
+    reviews = [api.diagnostic_review_template(data, r) for r in records]
+    for review in reviews:
+        review["checks"] = {key: check for key, check in review["checks"].items() if not key.startswith("response_check_")}
+        for check in review["checks"].values():
+            check.update(passed=True, note="old formation/target-only inspection")
+    with pytest.raises(ValueError, match="incomplete memory review"):
+        api.validate_diagnostic_reviews(data, records, reviews)
+
+
+@pytest.mark.parametrize("mutation", [
+    lambda records, reviews: reviews[4]["checks"].pop("response_check_2"),
+    lambda records, reviews: reviews[4]["checks"]["response_check_2"].update(expectation="a shorter permissive requirement"),
+    lambda records, reviews: reviews[4]["checks"]["response_check_2"].update(expectation=reviews[4]["checks"]["response_check_1"]["expectation"]),
+    lambda records, reviews: reviews[4]["checks"]["response_check_2"].update(passed=None),
+    lambda records, reviews: reviews[4]["checks"]["response_check_2"].update(note=" "),
+    lambda records, reviews: records[4].update(response="changed after the complete inspection"),
+])
+def test_diagnostic_response_review_rejects_missing_altered_uninspected_or_stale_clauses(mutation):
+    api = _api()
+    data = api.load_diagnostic(DATA.with_name("memory-effect-capacity-v2.json"))
+    records = [dict(case_ref=i.instance_ref, kind="common" if i in data.instances else "negative", input_sha256=api.diagnostic_input_sha256(i)) for i in data.instances + data.negative_controls]
+    reviews = [api.diagnostic_review_template(data, r) for r in records]
+    for review in reviews:
+        for check in review["checks"].values():
+            check.update(passed=True, note="inspected exact frozen clause against the bound record")
+    api.validate_diagnostic_reviews(data, records, reviews)
+    mutation(records, reviews)
+    with pytest.raises(ValueError, match="review"):
+        api.validate_diagnostic_reviews(data, records, reviews)
+
+
 @pytest.mark.parametrize("mutation", [
     lambda trace, anti, calls: next(iter(calls.values())).update(output="substituted"),
     lambda trace, anti, calls: anti.update(canonical_refs=["invented-delivery"]),
@@ -454,13 +504,18 @@ async def test_complete_public_diagnostic_summary_preserves_failed_semantics_and
     reviews = [api.diagnostic_review_template(data, r) for r in records]
     for review in reviews:
         for check in review["checks"].values():
-            check.update(passed=False, note="boundary fixture cannot prove the semantic requirement")
+            check.update(passed=True, note="synthetic boundary fixture flag; not model efficacy")
+    reviews[4]["checks"]["response_check_2"].update(passed=False, note="fixture violates only the frozen first-intervention clause")
+    reviews[4]["checks"]["target_behavior"].update(passed=False, note="the full first-intervention requirement also fails")
     kwargs = dict(calibration_records=read_jsonl(tmp_path / "calibration.jsonl"), starts=read_jsonl(tmp_path / "model-started.jsonl"), completed=read_jsonl(tmp_path / "model-completed.jsonl"), failed=[], rpc_starts=[], rpc_completed=[], rpc_failed=[], token_count=lambda text: len(text) // 8)
     summary = api.summarize_diagnostic(data, records, reviews, **kwargs)
     assert summary["calibration"]["identified"] is True
     assert summary["oracle"]["identified"] is False
     assert summary["oracle"]["oracle_vs_base"]["ties"] == 8
     assert summary["all_semantics_pass"] is False
+    assert sum(row["passed"] for row in summary["semantics"]) == 11
+    assert summary["semantics"][4]["failed_checks"] == ["response_check_2", "target_behavior"]
+    assert api.summarize_diagnostic(data, records, json.loads(json.dumps(reviews, sort_keys=True)), **kwargs) == summary
     assert len(summary["negative_controls"]) == 4
     with pytest.raises(ValueError, match="denominator"):
         api.summarize_diagnostic(data, records[:-1], reviews, **kwargs)
