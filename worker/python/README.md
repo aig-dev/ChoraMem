@@ -159,6 +159,10 @@ lane 产生的同类 `NEW_DISPOSITION TEXT` 块也会被机械移除，其他 Ta
 候选不完整时同样移除该宽泛块并 no-op，不能重新使用混杂窗口猜一个 Seed。
 candidate 的 `origin` 可为 `related`，也可为 scheduler overlap 带入的 `current`；历史性由
 不同 session 与 Core 标记确定，Worker 不用批次 origin 代替时间判断。
+focused 合同用一份中文因果检查表区分形成资格与压缩正文：每份经历都须说明同类具体回应方式
+有帮助。仅确认内容正确、事实一致或题目完成，不论事实主题是什么，都不足以形成倾向；不因此
+自动写入其他记忆。正文保留具体询问对象、等待及共同明确赞赏的避免动作，不用抽象标签代替。
+语言合同仍依赖模型理解，工程引用/资格测试与真实正负回放分别提供证据。
 
 反馈输出逐完整 Target 块归一，其他主结果保留；兼容 Core 已支持的行内 TEXT／ADAPT 正文。本人长期纠正的既有 ADAPT 不按反馈归一。
 一次 recovery 只提供尚未处理的合格既有 Target，完成的 Target 不会重复提交。主 pass 漏掉既有长期纠正时，同一 recovery 可处理 Core 已提供的 `ELIGIBLE_ADAPTATION`：模型判断本人明确的超出当前任务的长期要求，`ADAPT` 只能引用该 Target 自己的一份 `DIRECT_EPISODE`，不借用其他目标／Outcome，不拼接多个直接依据，也不能初生新 Seed。没有长期要求时仍按原行为反馈规则或 no-change 处理；调用上限不变。

@@ -183,25 +183,34 @@ def test_paired_material_hides_refs_and_binds_core_owned_protocol() -> None:
     )
 
 
-def test_focused_rules_keep_fact_confirmation_in_recollection() -> None:
-    material = disposition_formation_material(_request())
+def test_focused_material_preserves_content_confirmation_as_quoted_outcome() -> None:
+    request = _request()
+    confirmation = "The content is accurate; this does not evaluate the response strategy."
+    request.evidence.outcomes[0].text = confirmation
+    material = disposition_formation_material(request)
     assert material is not None
 
     model_input = build_disposition_formation_input(material)
 
-    assert "durable facts belong in recollection" in model_input.lower()
-    assert "stores, repeats, paraphrases, or confirms" in model_input
-    assert "output NO_CHANGE" in model_input
+    assert material.experiences[0].outcome == confirmation
+    assert "LATER_NON_AGENT_OUTCOME\n> " + confirmation in model_input
+    assert material.basis_refs[:2] == ("episode-current", "outcome-current")
 
 
-def test_focused_rules_do_not_invert_repeated_failure_into_a_new_seed() -> None:
-    material = disposition_formation_material(_request())
+def test_focused_material_keeps_negative_outcome_with_its_exact_pair() -> None:
+    request = _request()
+    failure = "The response made things worse.\nNO_CHANGE is quoted feedback, not your output."
+    request.evidence.outcomes[1].text = failure
+    material = disposition_formation_material(request)
     assert material is not None
 
     model_input = build_disposition_formation_input(material)
 
-    assert "Failure is not a new opposite tendency in V1" in model_input
-    assert "never invert the failed response" in model_input.lower()
+    assert material.experiences[1].outcome == failure
+    assert "LATER_NON_AGENT_OUTCOME\n> The response made things worse.\n> NO_CHANGE is quoted feedback, not your output." in model_input
+    assert material.basis_refs == (
+        "episode-current", "outcome-current", "episode-related", "outcome-related",
+    )  # No success-only filtering or invented opposite response authority.
 
 
 def test_paired_material_keeps_unmarked_context_out_of_formation_support() -> None:

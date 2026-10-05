@@ -195,9 +195,9 @@ Episode、Outcome 或 Basis 身份。具备完整 outcome 配对的新 Dispositi
 一个当前 anchor 与有序历史 candidates，并从 Core-rendered window 读取形成资格、APPLICATION、
 Constitution 和已有 Disposition 正文；模型输入不含 refs。程序按模型所见顺序绑定每一组
 `Episode -> Outcome`，Core 提交时要求 BASIS 序列精确相等。focused 输出仍交给同一个 Core
-parser 和事务验证，不形成第二套写入权威。若多组经验的共同点只是保存、复述、改写或确认
-用户 durable fact，且 Outcome 只确认准确性，focused Worker 必须返回 `NO_CHANGE`；这种内容
-属于 Recollection，不是改变未来回应方式的 Disposition。
+parser 和事务验证，不形成第二套写入权威。若 Outcome 只确认内容准确、事实一致或题目完成，
+而没有说明同一条件下的回应方式有帮助，focused Worker 必须返回 `NO_CHANGE`；此限制不按
+事实主题区分。声明性理解只按既有 Recollection 资格处理，不冒充改变回应方式的 Disposition。
 
 ## MemoryIndex 参与 Select 与 ConsolidateWindow
 
