@@ -1,6 +1,6 @@
 # 共同因果 gate 审查记录
 
-状态：最终独立审查已完成；Critical0／Important1一轮TDD修复／Minor0。完整复核9/12，d5/d6/d7失败保留。归档与最终goal状态结算中。
+状态：最终独立审查已完成；Critical0／Important1一轮TDD修复／Minor0。完整复核9/12，d5/d6/d7失败保留。完整归档与任务收尾已完成。
 
 范围：Core82a657c..当前分支以及 Chorai90025dac..5890e9b1。此前 G1/G2/Worker/G4 各自已有一次独立审查及一轮必要修复；它们是共同审查的上下文，执行者没有宣称本次 reviewer 重跑其完整运营/远端模型门。
 
@@ -157,3 +157,11 @@ Final: Ruling: New database/runtime/provider execution during read-only review �
 最终Python821通过／13可选跳过2.05s；Worker／Go／Store／协议／Chorai生产代码没有因本eval-only修复变化，仍由已实跑且重新核对的205production／bridge／full Go／vet／两迁移Store／health200／Chat/Proactive logs覆盖。reviewer独立重跑与执行者运营门分开报告。
 
 归档checkpoint：5761文件／361268882bytes逐一SHA256一致，active exclusions0；清单SHA2563e1af81e00253f317d8ab5693dace52f5e183241a7af5632d5a1ebc5d25f5202。最终task-done及ledger会再次完整封存后才清理该计划临时目录。89项按作出顺序的决定及代价完整保存于 [rulings JSON](2026-10-05-memory-effect-rulings.json)；自然收益与未通过行为不改变结论。
+
+## 最终完成与保存位置
+
+最终验收完成：五方向具体缺陷回归、生产生命周期、完整Oracle诊断和唯一Important的一轮TDD修复均闭环。最终formal suite为821Python通过／13可选跳过2.10s；production205／11可选跳过与桥接、完整Go／vet／真实迁移两Store和Chorai运行门均有此前完整执行日志。完整条款9/12（正5/8、负4/4），d5/d6/d7失败及纠正／语义去重／模型能力限制保持原判，高模式公开失败不获生产推荐。
+
+全部5763个owned文件／361274587bytes已逐一核对原件与保存件SHA256，active exclusions0；最终清单SHA2562913e5162cd1ba53ecc3199e3f96256ab6d64394df365d6acd308ae945f9ba0b。原始模型／RPC／review／所有失败／源码快照／一轮修复RED-GREEN与task-done／89项决定代价完整保留。只有本计划已有哈希一致备份的临时目录被删除，其他子计划、缓存、G2原运行日志、原始仓库、两个本地worktree及用户数据库保留；无push／merge。冻结复核source与summary可从保存件重算，不依赖已删除scratch中的源码。
+
+完整保存件：[最终清单](../../.cache/memory-effect-optimizations/common-verification/preservation-inventory.full.json)、[closeout state](../../.cache/memory-effect-optimizations/common-verification/closeout-state.json)、[已完成ledger](../../.cache/memory-effect-optimizations/common-verification/progress.md)。旧的两项复核及阶段未完成状态是原始历史记录，最终结论以完整v3复核和本节为准。

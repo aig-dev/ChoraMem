@@ -214,3 +214,11 @@ Final: Ruling: New database/runtime/provider execution during read-only review �
 最终追加semantic-reviews.complete-checks-v3.json SHA256 d7eff4efe652ff7037aceb52bc74847e0bb38e2b4c2a97779db29b2f9ac77055；reviewed-summary.complete-checks-v3.json SHA25601ac6def420842e2c7695678ee91a073ca2f93e3c0d506b5d5fe901cd7d814c6；complete-checks-v3-provenance.json SHA256d9bf61235f2d8bd6699f8c66d332a265552aaf6fe1c948a9fdddd754734beeba。75份当时assessment源码完整冻结并复算，全部原文件hash不变，0新model/Core调用。v2第一次严格复算暴露failed-check列表顺序差异，其原artifact和失败log保留，不算作通过的冻结复算。
 
 最终Python821通过／13可选跳过2.05s；Worker／Go／Store／协议／Chorai生产代码没有因本eval-only修复变化，仍由已实跑且重新核对的205production／bridge／full Go／vet／两迁移Store／health200／Chat/Proactive logs覆盖。reviewer独立重跑与执行者运营门分开报告。
+
+## 最终完成与保存位置
+
+最终验收完成：五方向具体缺陷回归、生产生命周期、完整Oracle诊断和唯一Important的一轮TDD修复均闭环。最终formal suite为821Python通过／13可选跳过2.10s；production205／11可选跳过与桥接、完整Go／vet／真实迁移两Store和Chorai运行门均有此前完整执行日志。完整条款9/12（正5/8、负4/4），d5/d6/d7失败及纠正／语义去重／模型能力限制保持原判，高模式公开失败不获生产推荐。
+
+全部5763个owned文件／361274587bytes已逐一核对原件与保存件SHA256，active exclusions0；最终清单SHA2562913e5162cd1ba53ecc3199e3f96256ab6d64394df365d6acd308ae945f9ba0b。原始模型／RPC／review／所有失败／源码快照／一轮修复RED-GREEN与task-done／89项决定代价完整保留。只有本计划已有哈希一致备份的临时目录被删除，其他子计划、缓存、G2原运行日志、原始仓库、两个本地worktree及用户数据库保留；无push／merge。冻结复核source与summary可从保存件重算，不依赖已删除scratch中的源码。
+
+完整保存件：[最终清单](../../../.cache/memory-effect-optimizations/common-verification/preservation-inventory.full.json)、[closeout state](../../../.cache/memory-effect-optimizations/common-verification/closeout-state.json)、[已完成ledger](../../../.cache/memory-effect-optimizations/common-verification/progress.md)。旧的两项复核及阶段未完成状态是原始历史记录，最终结论以完整v3复核和本节为准。

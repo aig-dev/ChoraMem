@@ -1,6 +1,6 @@
 # 五方向记忆效果优化：共同因果验证
 
-日期：2026-10-05。状态：工程修复已验证，完整公开行为诊断已完成多轮；formation 处理能力诊断已保留完整与部分失败；最终整组审查完成，唯一Important已一轮TDD修复；完整复核9/12，归档与goal状态结算中。
+日期：2026-10-05。状态：工程修复已验证，完整公开行为诊断已完成多轮；formation 处理能力诊断已保留完整与部分失败；最终整组审查完成，唯一Important已一轮TDD修复；完整复核9/12，归档与任务收尾已完成。
 
 目标是使有来源的经历改善未来理解和回应，并在新证据出现后修正。保存文本、形成 Seed、模型再现旧回应和用户获益是不同结果；本报告不把其中一项代替另一项。实现保持 Episode、Recollection、Disposition、外生 Constitution 和现有因果账，没有增加 confidence、强度、治理状态或新的 Memory 类型。
 
@@ -242,3 +242,11 @@ d1的完整公开倾向与实际先问／等待成功；同一轨迹还形成来
 完成范围限于最初goal的五方向具体修复、生产生命周期smoke、完整可辨识诊断和诚实效果结论。保留回应遵从／纠正延迟／同义去重／初窗口事实遗漏的限制，高模式公开run仍FAILED_INCOMPLETE且拒绝生产推荐，所有实验不可混分母。没有确认自然分布长期收益、通用模型遵从或产品整体优越性。Core-first单writer升级、forget仅派生不使用而非物理清除、reviewer只读权限的边界均作为final Rulings保存。
 
 归档checkpoint：5761文件／361268882bytes逐一SHA256一致，active exclusions0；清单SHA2563e1af81e00253f317d8ab5693dace52f5e183241a7af5632d5a1ebc5d25f5202。最终task-done及ledger会再次完整封存后才清理该计划临时目录。89项按作出顺序的决定及代价完整保存于 [rulings JSON](../../docs/evidence/2026-10-05-memory-effect-rulings.json)；自然收益与未通过行为不改变结论。
+
+## 最终完成与保存位置
+
+最终验收完成：五方向具体缺陷回归、生产生命周期、完整Oracle诊断和唯一Important的一轮TDD修复均闭环。最终formal suite为821Python通过／13可选跳过2.10s；production205／11可选跳过与桥接、完整Go／vet／真实迁移两Store和Chorai运行门均有此前完整执行日志。完整条款9/12（正5/8、负4/4），d5/d6/d7失败及纠正／语义去重／模型能力限制保持原判，高模式公开失败不获生产推荐。
+
+全部5763个owned文件／361274587bytes已逐一核对原件与保存件SHA256，active exclusions0；最终清单SHA2562913e5162cd1ba53ecc3199e3f96256ab6d64394df365d6acd308ae945f9ba0b。原始模型／RPC／review／所有失败／源码快照／一轮修复RED-GREEN与task-done／89项决定代价完整保留。只有本计划已有哈希一致备份的临时目录被删除，其他子计划、缓存、G2原运行日志、原始仓库、两个本地worktree及用户数据库保留；无push／merge。冻结复核source与summary可从保存件重算，不依赖已删除scratch中的源码。
+
+完整保存件：[最终清单](../../.cache/memory-effect-optimizations/common-verification/preservation-inventory.full.json)、[closeout state](../../.cache/memory-effect-optimizations/common-verification/closeout-state.json)、[已完成ledger](../../.cache/memory-effect-optimizations/common-verification/progress.md)。旧的两项复核及阶段未完成状态是原始历史记录，最终结论以完整v3复核和本节为准。

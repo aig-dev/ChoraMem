@@ -1,0 +1,25 @@
+{
+  "plan": "docs/superpowers/plans/2026-10-05-memory-effect-causal-gate.md",
+  "archive_root": "/Users/luffylu/.codex/worktrees/memory-effect-optimizations/ChoraMem/.cache/memory-effect-optimizations/common-verification",
+  "file_count": 5763,
+  "bytes": 361274587,
+  "inventory_sha256": "2913e5162cd1ba53ecc3199e3f96256ab6d64394df365d6acd308ae945f9ba0b",
+  "all_files_verified_before_cleanup": true,
+  "only_owned_backed_up_scratch_removed": "/Users/luffylu/.codex/worktrees/memory-effect-optimizations/ChoraMem/.superpowers/sdd/2026-10-05-memory-effect-causal-gate",
+  "all_other_plans_caches_worktrees_preserved": true,
+  "branches_kept_local": true,
+  "deferred_minors": 0,
+  "complete_check_compliance": {
+    "total": 12,
+    "passed": 9,
+    "positive_passed": 5,
+    "positive_total": 8,
+    "negative_passed": 4,
+    "failed": [
+      "d5",
+      "d6",
+      "d7"
+    ]
+  },
+  "natural_uplift_claimed": false
+}

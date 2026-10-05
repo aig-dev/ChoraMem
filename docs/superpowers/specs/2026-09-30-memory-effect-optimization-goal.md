@@ -2,7 +2,7 @@
 
 日期：2026-09-30
 
-状态：五方向具体修复、共同诊断和最终独立审查已完成；归档与goal状态结算中。用户原授权与有界完成条件保持不变。
+状态：完成。五方向具体修复、共同诊断、最终独立审查及完整归档已验收。用户原授权与有界完成条件保持不变。
 
 ## 目标与完成边界
 
@@ -180,3 +180,11 @@ G4 Task3闭环：一次独立审查核对原始54调用／20RPC、origin Job与e
 2026-10-05共同进展：完整29例原始因果回放、全部G3／G5语义检查及修复子集保存，三轮完整长材料12例不合并；最新fast形成／common policy回放499模型调用／90RPC，全部完成，Oracle两比较均7/8位置一致赢、0输，通过冻结判别。原模板两项检查10/12遗漏三条冻结行为标准；追加完整逐条复核为9/12，d5先解释再提问、d6正文信息和d7回答序仍有损失，完整结果和模型flags分别保留。当前formation thinking/high的12包及两个非canonical回答揭示文本加工能力与回答遵从的区别，公开mixed-profile回放在d2两次reasoning耗尽8192token后中止，完整失败被保留且不获生产推荐；现有strict guard对90份真实RPC捕获回归保持字节一致。目标的完成依据仍是具体缺陷回归、真实接线smoke、完整可辨识诊断和诚实局限；模型个别回应不遵从不能被改评分掩盖，也不能推导新增Core状态／置信度。详见 [共同因果报告](../../../eval/reports/2026-10-05-memory-effect-causal-gate.zh-CN.md)及 [共同计划](../plans/2026-10-05-memory-effect-causal-gate.md)。
 
 2026-10-05最终验收：一次独立整组review，Critical0／Important1／Minor0；Important漏行为条款经9项覆盖RED→GREEN及顺序复算RED→GREEN，一轮修复后821Python通过／13可选跳过。最新完整861cohort为9/12完整条款达标（正5/8、负4/4），d5/d6/d7失败。原Oracle／模型flags／旧原始评分保持不变；75源码冻结的v3完整复核精确重算。全部五方向要求与来源／生命周期／工程／行为证明逐项映射在共同报告，reviewer确认满足最初有界完成承诺，保留正文遗漏、回应遵从、纠正延迟、同义去重及高模式失败。最终归档逐文件校验后才更新goal为complete；本地Core／Chorai分支不push／merge。完整决定与代价见 [最终review](../../evidence/2026-10-05-memory-effect-causal-gate-review.md)。
+
+## 最终完成与保存位置
+
+最终验收完成：五方向具体缺陷回归、生产生命周期、完整Oracle诊断和唯一Important的一轮TDD修复均闭环。最终formal suite为821Python通过／13可选跳过2.10s；production205／11可选跳过与桥接、完整Go／vet／真实迁移两Store和Chorai运行门均有此前完整执行日志。完整条款9/12（正5/8、负4/4），d5/d6/d7失败及纠正／语义去重／模型能力限制保持原判，高模式公开失败不获生产推荐。
+
+全部5763个owned文件／361274587bytes已逐一核对原件与保存件SHA256，active exclusions0；最终清单SHA2562913e5162cd1ba53ecc3199e3f96256ab6d64394df365d6acd308ae945f9ba0b。原始模型／RPC／review／所有失败／源码快照／一轮修复RED-GREEN与task-done／89项决定代价完整保留。只有本计划已有哈希一致备份的临时目录被删除，其他子计划、缓存、G2原运行日志、原始仓库、两个本地worktree及用户数据库保留；无push／merge。冻结复核source与summary可从保存件重算，不依赖已删除scratch中的源码。
+
+完整保存件：[最终清单](../../../.cache/memory-effect-optimizations/common-verification/preservation-inventory.full.json)、[closeout state](../../../.cache/memory-effect-optimizations/common-verification/closeout-state.json)、[已完成ledger](../../../.cache/memory-effect-optimizations/common-verification/progress.md)。旧的两项复核及阶段未完成状态是原始历史记录，最终结论以完整v3复核和本节为准。
