@@ -393,21 +393,21 @@ def test_diagnostic_memory_review_binds_each_committed_record_and_condition():
 ])
 def test_capacity_answers_bind_completed_order_and_eval_only_anti(mutation):
     api = _api()
-    from memory_core_eval.delayed_seed_effect import build_answer_prompt
+    from memory_core_eval.memory_effect_runner import build_effect_answer_prompt
     from memory_core_eval.memory_effect_runner import ARMS, effect_request_sha256, sha256_text
     data = api.load_diagnostic(DATA)
     instance = data.instances[0]
     trace, calls = {"arms": []}, {}
     for mode in ARMS:
         memory = "a fact" if mode != "none" else ""
-        instructions, prompt = build_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=memory)
+        instructions, prompt = build_effect_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=memory)
         request = effect_request_sha256(instructions, prompt, 1024)
         output = mode + " output"
         trace["arms"].append(dict(mode=mode, instructions=instructions, input_text=prompt, request_sha256=request, output=output, output_sha256=sha256_text(output), foundation_text=memory, foundation_refs=["fact@1"] if memory else []))
         calls[mode] = dict(attempt_ref=mode, purpose="diagnostic:d1:answer", rpc_ref="", instructions=instructions, input_text=prompt, max_output_tokens=1024, request_sha256=request, output=output, output_sha256=sha256_text(output))
     tendency = "DISPOSITIONS\nRELATION: " + data.counterfactuals["d1"].anti_disposition
     memory = "a fact\n\n" + tendency
-    instructions, prompt = build_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=memory)
+    instructions, prompt = build_effect_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=memory)
     request = effect_request_sha256(instructions, prompt, 1024)
     calls["anti"] = dict(attempt_ref="anti", purpose="diagnostic:d1:anti", rpc_ref="", instructions=instructions, input_text=prompt, max_output_tokens=1024, request_sha256=request, output="anti output", output_sha256=sha256_text("anti output"))
     anti = dict(attempt_ref="anti", request_sha256=request, output="anti output", output_sha256=sha256_text("anti output"), foundation_text="a fact", foundation_refs=["fact@1"], tendency_text=tendency, memory_text=memory, memory_tokens=len(memory), canonical_refs=[], authority="eval-only; no Delivery/AgentAct/Outcome")

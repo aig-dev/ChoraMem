@@ -21,12 +21,12 @@ from memory_core import AsyncMemoryClient, memory_pb2 as pb, render_memory_conte
 
 from .anchor_cli import settle_memory_state
 from .delayed_seed_data import DelayedSeedInstance
-from .delayed_seed_effect import build_answer_prompt, build_pairwise_prompt, parse_pairwise_token
+from .delayed_seed_effect import build_pairwise_prompt, parse_pairwise_token
 from .delayed_seed_runner import freeze_result
 from .memory_effect_data import PROTOCOL, MemoryEffectDataset, load_memory_effect, memory_effect_input_sha256
 from .memory_effect_runner import (
     ARMS, ANSWER_TOKENS, EPISODE_BYTES, FOUNDATION_TOKENS, MEMORY_TOKENS, TENDENCY_TOKENS,
-    build_effect_contexts, effect_constitution, effect_request_sha256, effect_scope,
+    build_effect_answer_prompt, build_effect_contexts, effect_constitution, effect_request_sha256, effect_scope,
     observe_effect_session, prepare_effect_trajectory, report_effect_feedback,
     run_effect_arms, sha256_text, validate_effect_trace,
 )
@@ -300,7 +300,7 @@ async def run_effect_probe(*, instance: DelayedSeedInstance, request: str, evalu
     if content["rendered_memory_refs"]:
         receipt = await memory.record_memory_delivery(pb.MemoryDeliveryReceipt(idempotency_key=run + ":delivery", scope=scope, run_ref=run, memory_context_ref=selected.context_ref, delivered_memory_refs=content["rendered_memory_refs"]))
         delivery = {"receipt_ref": receipt.receipt_ref, "run_ref": run, "memory_context_ref": selected.context_ref, "delivered_memory_refs": content["rendered_memory_refs"]}
-    instructions, input_text = build_answer_prompt(persona_text=instance.persona_text, current_request=request, memory_text=content["memory_text"])
+    instructions, input_text = build_effect_answer_prompt(persona_text=instance.persona_text, current_request=request, memory_text=content["memory_text"])
     if scripted_act is None:
         token = EFFECT_PURPOSE.set(f"{instance.instance_ref}:probe:{suffix}")
         try:
@@ -352,7 +352,7 @@ async def run_live_effects(*, data: MemoryEffectDataset, manifest: Mapping, memo
         anti_memory = "\n\n".join(v for v in (oracle_arm["foundation_text"], anti_tendency) if v)
         if token_count(anti_tendency) > TENDENCY_TOKENS or token_count(anti_memory) > MEMORY_TOKENS:
             raise ValueError("anti control exceeds frozen budget")
-        instructions, input_text = build_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=anti_memory)
+        instructions, input_text = build_effect_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=anti_memory)
         token = EFFECT_PURPOSE.set(ref + ":anti-control")
         try:
             anti_output = await model.complete(instructions=instructions, input_text=input_text, max_output_tokens=ANSWER_TOKENS)

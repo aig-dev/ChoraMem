@@ -375,7 +375,7 @@ def validate_diagnostic_reviews(data: DiagnosticData, records: Sequence[Mapping]
 
 
 def validate_diagnostic_answers(instance, trace, anti, counterfactual, calls, *, token_count) -> set[str]:
-    from .delayed_seed_effect import build_answer_prompt
+    from .memory_effect_runner import build_effect_answer_prompt
     from .memory_effect_runner import ANSWER_TOKENS, MEMORY_TOKENS, TENDENCY_TOKENS, effect_request_sha256, sha256_text
     actual = [c for c in calls.values() if c.get("purpose") == f"diagnostic:{instance.instance_ref}:answer" and not c.get("rpc_ref")]
     if len(actual) != 4 or len(trace["arms"]) != 4:
@@ -390,7 +390,7 @@ def validate_diagnostic_answers(instance, trace, anti, counterfactual, calls, *,
     memory = "\n\n".join(t for t in (oracle["foundation_text"], tendency) if t)
     if any(anti.get(k) != v for k, v in {"foundation_text": oracle["foundation_text"], "foundation_refs": oracle["foundation_refs"], "tendency_text": tendency, "memory_text": memory, "memory_tokens": token_count(memory), "canonical_refs": [], "authority": "eval-only; no Delivery/AgentAct/Outcome"}.items()) or token_count(tendency) > TENDENCY_TOKENS or token_count(memory) > MEMORY_TOKENS:
         raise ValueError("diagnostic anti foundation/budget/authority drift")
-    instructions, prompt = build_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=memory)
+    instructions, prompt = build_effect_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=memory)
     request = effect_request_sha256(instructions, prompt, ANSWER_TOKENS)
     call = calls.get(anti.get("attempt_ref"))
     if not call or call.get("purpose") != f"diagnostic:{instance.instance_ref}:anti" or call.get("rpc_ref") or call.get("request_sha256") != request or anti.get("request_sha256") != request or (call.get("instructions"), call.get("input_text"), call.get("max_output_tokens")) != (instructions, prompt, ANSWER_TOKENS) or call.get("output") != anti.get("output") or anti.get("output_sha256") != sha256_text(anti["output"]):
@@ -404,7 +404,7 @@ def validate_diagnostic_answers(instance, trace, anti, counterfactual, calls, *,
 def summarize_diagnostic(data: DiagnosticData, records: Sequence[Mapping], reviews: Sequence[Mapping], *, calibration_records, starts, completed, failed, rpc_starts, rpc_completed, rpc_failed, token_count) -> dict:
     from google.protobuf.json_format import ParseDict
     from memory_core import memory_pb2 as pb
-    from .delayed_seed_effect import build_answer_prompt
+    from .memory_effect_runner import build_effect_answer_prompt
     from .memory_effect_cli import _learned_content, oracle_gate, validate_model_inventory, validate_rpc_inventory
     from .memory_effect_runner import effect_request_sha256, sha256_text, validate_effect_trace
     inventory = validate_model_inventory(starts, completed, failed)
@@ -453,7 +453,7 @@ def summarize_diagnostic(data: DiagnosticData, records: Sequence[Mapping], revie
         record, ref = by_ref[instance.instance_ref], instance.instance_ref
         reply = record["reply"]
         content = _learned_content(ParseDict(reply["selected"], pb.MemoryContext()), token_count)
-        instructions, prompt = build_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=content["memory_text"])
+        instructions, prompt = build_effect_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=content["memory_text"])
         request = effect_request_sha256(instructions, prompt, 1024)
         call = calls.get(reply.get("answer_attempt_ref"))
         if not call or call.get("purpose") != f"{ref}:probe:probe" or call.get("rpc_ref") or call.get("request_sha256") != request or (call.get("instructions"), call.get("input_text"), call.get("max_output_tokens"), call.get("output")) != (instructions, prompt, 1024, reply["output"]) or reply.get("output_sha256") != sha256_text(reply["output"]) or any(reply.get(k) != v for k, v in content.items()) or len(record["training_sources"]) != 3 or len({s["session_ref"] for s in record["training_sources"]}) != 3:
@@ -486,7 +486,8 @@ def _booleans(value, count: int) -> tuple[bool, ...]:
 async def run_public_diagnostic(*, data: DiagnosticData, evaluation_ref: str, memory, probe, model, token_count, output: Path) -> dict:
     """Calibrate before any memory admission, then reuse the public causal replay."""
     from .anchor_cli import settle_memory_state
-    from .delayed_seed_effect import build_answer_prompt, build_pairwise_prompt, parse_pairwise_token
+    from .delayed_seed_effect import build_pairwise_prompt, parse_pairwise_token
+    from .memory_effect_runner import build_effect_answer_prompt
     from .delayed_seed_runner import freeze_result
     from .memory_effect_cli import COMPARISONS, EFFECT_PURPOSE, append_jsonl, checkpoint, read_jsonl, run_effect_probe
     from .memory_effect_runner import (
@@ -546,7 +547,7 @@ async def run_public_diagnostic(*, data: DiagnosticData, evaluation_ref: str, me
         anti_memory = "\n\n".join(t for t in (oracle_arm["foundation_text"], tendency) if t)
         if token_count(tendency) > TENDENCY_TOKENS or token_count(anti_memory) > MEMORY_TOKENS:
             raise ValueError("diagnostic anti exceeds the unchanged budget")
-        instructions, prompt = build_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=anti_memory)
+        instructions, prompt = build_effect_answer_prompt(persona_text=instance.persona_text, current_request=instance.current_request, memory_text=anti_memory)
         token = EFFECT_PURPOSE.set("diagnostic:" + ref + ":anti")
         try:
             anti_output = await model.complete(instructions=instructions, input_text=prompt, max_output_tokens=ANSWER_TOKENS)

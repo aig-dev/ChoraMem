@@ -185,7 +185,9 @@ Delivery，Core 可再次提供其精确 Episode/Outcome 对。Target 内的 REC
 形成材料分别引用回应前的 USER Situation、既有 AgentAct 和后来的 non-Agent Outcome；后者报告
 的回答或后续结果不能被压缩成原 AgentAct 当时已经掌握的信息。标签只说明既有因果角色，不添加
 证据或改变 Basis 资格。
-focused 调用可对照第一轮一个同组暂态句子检查被概括掉的意图、避免动作和等待边界。该句子必须
+focused 调用可对照第一轮一个同组暂态句子检查被概括掉的意图、避免动作和等待边界。有草稿时，
+任务明确为依据全部实际结果校订，先检查已有覆盖，再独立还原受支持的回应边界；照抄草稿不是
+校订，仅重述或缩窄已覆盖条件也不是新增倾向。这些仍须由实际语义回放验证。该句子必须
 对应同一 application 和精确完整 Episode 组，所列 Outcome 只可属于这组已配对结果；去掉 refs 后
 只作为引用数据，完整 typed Outcome 仍全部展示和绑定；缺 opcode 的主输出
 仍不具 coverage 或提交权威。错组、重复／额外 Basis、ADAPT、多个候选、多行、超预算或含真实 refs

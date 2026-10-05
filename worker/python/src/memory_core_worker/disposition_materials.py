@@ -217,7 +217,16 @@ def build_disposition_formation_input(
         raise TypeError("primary_text must be str")
     if "\n" in primary_text or len(primary_text.encode("utf-8")) > _MAX_CHANGE_TEXT_BYTES:
         raise ValueError("primary_text must be one bounded line")
+    task = (
+        "本次任务是校订暂态草稿：先从全部经历的外部结果独立还原受支持的条件与回应边界，"
+        "再检查草稿是否完整表达它们，不能把照抄草稿当作校订。"
+        "先检查已有倾向；仅改写措辞或增加已覆盖条件的限定，不构成新的倾向。"
+        "最终返回受支持的完整正文；证据不足、矛盾或已有覆盖时返回 NO_CHANGE。"
+        if primary_text else
+        "本次任务是从全部经历判断是否有新的、受支持的条件性回应倾向。"
+    )
     parts = [
+        task,
         _FORMATION_RULES,
         "CONSTITUTION_BEGIN",
         *_quote(material.constitution),

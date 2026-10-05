@@ -168,3 +168,15 @@ consolidation Worker 应通过自己的 `MEMORY_WORKER_REASONING_EFFORT` 独立�
 
 一次确实形成并投递 Recollection 的官方 LongMemEval smoke 结果及其失败解释，见
 [2026-09-05 MemoryAgentBench 基线](./reports/2026-09-05-memoryagentbench-smoke.zh-CN.md)。
+
+## 共同因果门的回答合同
+
+`memory_effect_runner.build_effect_answer_prompt` 用于共同因果门的全部答题臂、反控制与纠正后探测。
+它保留 PERSONA／当前任务优先级，区分声明性事实、历史引语与条件性回应方式：相关倾向影响完成
+任务的方法和顺序；需要用户回答的后续动作不得在第一轮提前给出。准确协作角色不得虚构未提供的
+个人或共同经历。这个 Harness 表达合同不增加 Core 权威，也不替其他消费者规定创造性表达策略。
+
+所有生成、Trace 与诊断校验使用同一 builder，并绑定实际请求／输出哈希；none、base、learned、
+Oracle、anti 使用相同合同。早期 delayed／PersonaMem builder 与已冻结的数据和记录保持原协议，
+复核旧记录需加载对应完整冻结源码。合同修改后的实际回放单独报告；检查过的样本属于开发诊断，
+不能改写先前失败或当作新盲测和自然分布收益。

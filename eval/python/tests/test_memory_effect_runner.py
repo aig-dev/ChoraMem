@@ -117,6 +117,27 @@ async def test_four_arms_share_one_physical_source_and_frozen_foundation():
 
 
 @pytest.mark.asyncio
+async def test_common_trace_rejects_legacy_answer_policy_even_with_consistent_hashes():
+    """Correct hashes cannot substitute another Harness's answering contract."""
+    from memory_core_eval.delayed_seed_effect import build_answer_prompt
+
+    trace, _, _ = await _run()
+    arm = trace["arms"][0]
+    instructions, prompt = build_answer_prompt(
+        persona_text=trace["persona_text"],
+        current_request=trace["current_request"],
+        memory_text=arm["memory_text"],
+    )
+    request_sha = _api().effect_request_sha256(instructions, prompt, 1024)
+    arm.update(instructions=instructions, input_text=prompt, request_sha256=request_sha)
+    for inventory in (trace["started_answer_calls"], trace["completed_answer_calls"]):
+        next(call for call in inventory if call["attempt_ref"] == arm["attempt_ref"])["request_sha256"] = request_sha
+
+    with pytest.raises(ValueError, match="prompt/hash"):
+        _api().validate_effect_trace(trace, token_count=_count)
+
+
+@pytest.mark.asyncio
 async def test_preselection_rejects_changed_item_snapshots_before_answering():
     with pytest.raises(ValueError, match="snapshot"):
         await _run(MemoryBoundary(drift=True))
