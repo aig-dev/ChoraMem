@@ -152,7 +152,10 @@ non-Agent Outcome 时，`disposition_formation_material(request)` 才会构造�
 `Episode -> Outcome`；未标记的 Episode 不进入 EXPERIENCES 或形成 Basis。当前 USER Situation 的
 完整正文另以引用上下文保留，避免历史正例重新形成已被本人纠正的旧回应；它不补充成功证据，
 也不授予新 Seed 的直接形成资格。模型应对已有相同条件含义返回 NO_CHANGE；绑定器另外拒绝
-与已有正文完全相同的输出，语义改写仍由模型判断。普通聊天 Episode
+与已有正文完全相同的输出，语义改写仍由模型判断。准确的 `NO_CHANGE` 是空 no-op；
+只有该控制标记及标点／空白组成的畸形输出会作为格式错误拒绝，不能绑定为倾向正文。
+正文中有实际含义的 `NO_CHANGE` 提及不受此保护限制；其他格式错误仍沿既有 RPC 失败路径处理。
+普通聊天 Episode
 不具新 Seed 的单步权威：统一 lane 返回的所有 `NEW_DISPOSITION ADAPT` 块都会被机械移除；已有
 Seed 的 exact Target 仍可用 `ADAPT` 接受本人直接长期纠正。完整配对被 focused lane 接管后，统一
 lane 产生的同类 `NEW_DISPOSITION TEXT` 块也会被机械移除，其他 Target 保留。只有 anchor 而

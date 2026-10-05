@@ -75,6 +75,12 @@ class DispositionFormationMaterial:
             raise ValueError("disposition body is required")
         if len(value.splitlines()) != 1:
             raise ValueError("disposition body must contain exactly one line")
+        remainder = value.replace("NO_CHANGE", "")
+        if remainder != value and all(
+            character.isspace() or unicodedata.category(character).startswith("P")
+            for character in remainder
+        ):
+            raise ValueError("disposition body is a malformed control-only result")
         if value in _RESERVED_OUTPUT_LINES or value.startswith(("{", "[", "```")):
             raise ValueError("disposition body must be plain text")
         if _utf8_size(value, "disposition body") > _MAX_CHANGE_TEXT_BYTES:

@@ -783,6 +783,18 @@ async def test_paired_no_change_blocks_primary_overgeneralization_only() -> None
 
 
 @pytest.mark.asyncio
+async def test_control_only_formation_is_rejected_at_rpc_boundary_without_produced_seed(caplog) -> None:
+    model = SequenceTextModel(["NO_CHANGE", ": NO_CHANGE。NO_CHANGE", "NO_MEMORY"])
+    with caplog.at_level(logging.INFO, logger="memory_core_worker.service"):
+        with pytest.raises(ValueError, match="control-only"):
+            await InferenceService(model).ProcessConsolidationWindow(_paired_formation_request(), None)
+    assert "lane=formation status=rejected_format" in caplog.text
+    assert "lane=formation status=produced" not in caplog.text
+    assert ": NO_CHANGE。NO_CHANGE" not in caplog.text
+    assert len(model.calls) == 2
+
+
+@pytest.mark.asyncio
 async def test_anchor_without_complete_history_blocks_primary_broad_formation() -> None:
     request = _paired_formation_request()
     request.evidence.episodes[1].formation_role = ""

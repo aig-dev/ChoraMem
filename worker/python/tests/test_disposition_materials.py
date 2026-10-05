@@ -109,6 +109,23 @@ def test_existing_body_cannot_form_a_second_seed(padding: str) -> None:
     assert material.bind_disposition(padding + material.existing_dispositions[0] + padding) == ""
 
 
+@pytest.mark.parametrize("body", [": NO_CHANGE。NO_CHANGE", "NO_CHANGE。", '“NO_CHANGE”', "NO_CHANGE / NO_CHANGE"])
+def test_control_only_focused_output_cannot_bind_a_tendency(body: str) -> None:
+    """Actual malformed provider control must never become canonical TEXT."""
+    material = disposition_formation_material(_request())
+    assert material is not None
+    with pytest.raises(ValueError, match="control"):
+        material.bind_disposition(body)
+
+
+def test_no_change_control_guard_preserves_valid_noop_and_meaningful_token_mentions() -> None:
+    material = disposition_formation_material(_request())
+    assert material is not None
+    assert material.bind_disposition(" NO_CHANGE ") == ""
+    body = "When a user is unsure how to handle NO_CHANGE, ask which system returned it."
+    assert "\nTEXT\n" + body + "\nBASIS\n" in material.bind_disposition(body)
+
+
 def test_formation_keeps_current_user_correction_outside_the_causal_group() -> None:
     """Cropping a positive group must not hide a current lasting correction."""
     request = _request()
