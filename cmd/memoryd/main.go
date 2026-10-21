@@ -30,6 +30,7 @@ import (
 	"github.com/aig-dev/ChoraMem/provider/memoryindexgrpc"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
+	grpchealth "google.golang.org/grpc/health/grpc_health_v1"
 )
 
 func main() {
@@ -84,6 +85,7 @@ func run(ctx context.Context, configuration config) error {
 	}
 	defer inferenceConnection.Close()
 	worker := grpcworker.New(inferencev1.NewInferenceWorkerClient(inferenceConnection))
+	workerHealth := grpchealth.NewHealthClient(inferenceConnection)
 	schedulerConfig := configuration.scheduler
 	schedulerConfig.OnError = func(err error) {
 		logMemoryRetry("consolidation", err)
@@ -114,12 +116,26 @@ func run(ctx context.Context, configuration config) error {
 		memoryconnect.NewServer(transportService),
 		connect.WithInterceptors(authenticator.ConnectInterceptor()),
 	)
-	httpServer := &http.Server{
-		Handler: server.NewHandler(func() bool {
-			pingContext, cancel := context.WithTimeout(context.Background(), time.Second)
+	httpHandler := http.NewServeMux()
+	httpHandler.Handle("GET /ops/queues", server.NewDiagnosticsHandler(configuration.diagnosticsToken,
+		func(ctx context.Context) (corestorage.QueueDiagnostics, error) {
+			snapshot, err := store.QueueDiagnostics(ctx, time.Now().UTC().Add(-schedulerConfig.QuietPeriod), schedulerConfig.MaxEpisodes)
+			if err != nil {
+				return snapshot, err
+			}
+			probeContext, cancel := context.WithTimeout(ctx, time.Second)
 			defer cancel()
-			return store.Ping(pingContext) == nil
-		}, connectPath, connectHandler),
+			response, err := workerHealth.Check(probeContext, &grpchealth.HealthCheckRequest{Service: "memory.inference.v1.InferenceWorker"})
+			snapshot.WorkerReady = err == nil && response.GetStatus() == grpchealth.HealthCheckResponse_SERVING
+			return snapshot, nil
+		}))
+	httpHandler.Handle("/", server.NewHandler(func() bool {
+		pingContext, cancel := context.WithTimeout(context.Background(), time.Second)
+		defer cancel()
+		return store.Ping(pingContext) == nil
+	}, connectPath, connectHandler))
+	httpServer := &http.Server{
+		Handler:           httpHandler,
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	grpcServer := grpc.NewServer(grpc.UnaryInterceptor(authenticator.GRPCUnaryServerInterceptor()))
@@ -202,7 +218,12 @@ func run(ctx context.Context, configuration config) error {
 	return runError
 }
 
-func openCoreStore(ctx context.Context, configuration config, index memoryindex.Index) (corestorage.CoreStore, error) {
+type operationalStore interface {
+	corestorage.CoreStore
+	QueueDiagnostics(context.Context, time.Time, int) (corestorage.QueueDiagnostics, error)
+}
+
+func openCoreStore(ctx context.Context, configuration config, index memoryindex.Index) (operationalStore, error) {
 	switch configuration.databaseDriver {
 	case databaseDriverPostgres:
 		options := make([]postgres.Option, 0, 1)

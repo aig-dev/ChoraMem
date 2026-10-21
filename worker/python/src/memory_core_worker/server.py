@@ -8,9 +8,11 @@ import os
 import logging
 
 import grpc
+from grpc_health.v1 import health, health_pb2, health_pb2_grpc
 
 from .model import OpenAIResponsesTextModel, TextModel
 from .service import DEFAULT_MAX_MODEL_INPUT_BYTES, InferenceService
+from .telemetry import LangfuseTelemetry
 from .v1 import inference_pb2_grpc
 
 
@@ -36,11 +38,15 @@ class Settings:
 
 
 async def serve(
-    model: TextModel, grpc_address: str, max_model_input_bytes: int
+    model: TextModel, grpc_address: str, max_model_input_bytes: int,
+    *, telemetry: LangfuseTelemetry | None = None,
 ) -> None:
     server = grpc.aio.server()
+    health_service = health.aio.HealthServicer()
+    await health_service.set("memory.inference.v1.InferenceWorker", health_pb2.HealthCheckResponse.SERVING)
+    health_pb2_grpc.add_HealthServicer_to_server(health_service, server)
     inference_pb2_grpc.add_InferenceWorkerServicer_to_server(
-        InferenceService(model, max_model_input_bytes=max_model_input_bytes), server
+        InferenceService(model, max_model_input_bytes=max_model_input_bytes, telemetry=telemetry), server
     )
     if server.add_insecure_port(grpc_address) == 0:
         raise RuntimeError(f"could not bind gRPC server to {grpc_address}")
@@ -94,7 +100,8 @@ def main(argv: Sequence[str] | None = None) -> None:
     )
     try:
         asyncio.run(
-            serve(model, settings.grpc_address, settings.max_model_input_bytes)
+            serve(model, settings.grpc_address, settings.max_model_input_bytes,
+                  telemetry=LangfuseTelemetry.from_environment(model=settings.openai_model))
         )
     except KeyboardInterrupt:
         pass

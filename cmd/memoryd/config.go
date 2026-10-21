@@ -24,6 +24,7 @@ const (
 )
 
 type config struct {
+	diagnosticsToken   string
 	databaseDriver     databaseDriver
 	databaseURL        string
 	httpAddress        string
@@ -97,6 +98,7 @@ func configFromEnvironment() (config, error) {
 		projectorConfig.PageSize = parsed
 	}
 	configuration := config{
+		diagnosticsToken:   os.Getenv("MEMORYD_DIAGNOSTICS_TOKEN"),
 		databaseDriver:     databaseDriver(strings.ToLower(strings.TrimSpace(os.Getenv("MEMORYD_DATABASE_DRIVER")))),
 		databaseURL:        os.Getenv("MEMORYD_DATABASE_URL"),
 		httpAddress:        os.Getenv("MEMORYD_HTTP_ADDR"),

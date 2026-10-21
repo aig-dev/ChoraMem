@@ -11,6 +11,7 @@ license = "Apache-2.0"
 requires-python = ">=3.11"
 dependencies = [
   "grpcio>=1.78.0,<2",
+  "grpcio-health-checking>=1.78.0,<2",
   "protobuf>=6.31.1,<7",
 ]
 

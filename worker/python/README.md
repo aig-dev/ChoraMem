@@ -200,6 +200,20 @@ Disposition 演化、精确去重与原子提交仍由统一路径和 Core 处�
 
 ## 安全运行诊断
 
+Worker 提供标准 gRPC Health `Check`，service 为
+`memory.inference.v1.InferenceWorker`。该检查只确认服务可响应，不调用模型或修改记忆；
+它不保证外部模型供应商可用。无需新增 Worker 对外端口。
+
+可选 `MEMORY_WORKER_LANGFUSE_ENABLED=true` 与 `LANGFUSE_HOST`、
+`LANGFUSE_PUBLIC_KEY`、`LANGFUSE_SECRET_KEY` 开启 Langfuse HTTP export，默认关闭，
+不依赖 Langfuse SDK。每个 Worker RPC attempt 创建 `memory.consolidation` trace；
+实际 primary / formation / feedback / recollection 模型调用各有 generation。
+仅上传 job SHA-256 关联、固定 lane/status、计数、模型名、时间和 bytes，不上传
+prompt、正文、原始 refs 或异常信息。并发请求以 ContextVar 隔离。网络 export 有界、
+失败只产生安全 warning，不改变 Worker 文本或 Core 的重试／资格规则。
+`uncommitted_proposal` 只表示 Worker 输出，不能替代 Core commit 或效果证据。
+
+
 启动入口启用 INFO 日志。Worker 只输出固定 `lane/status/count`，区分正常无变化、无合格材料、
 格式拒绝、输入／输出预算、资格拒绝和模型失败；不输出来源、模型正文、refs、凭据或原始异常。
 Core 用同类日志补充提交资格拒绝与 stale snapshot，runtime retry sink 只输出安全错误类别。

@@ -93,6 +93,17 @@ intake transaction
 
 `consolidation_jobs` 是唯一调度表，只负责防丢、并发领取与重试。它不保存 Proposal、人工决定或模型 confidence。
 
+运维只读 `GET /ops/queues` 可用独立的 `MEMORYD_DIAGNOSTICS_TOKEN` 开启，空值时禁用；
+请求必须携带该 operator bearer token，不沿用任意 tenant token 暴露全局计数。
+返回 consolidation / projection 的 pending、time-due、in-flight、最大重试次数与
+最老 time-due 行的创建年龄、projector 是否配置，以及通过标准 gRPC Health RPC
+只读检查的 `worker_ready`。Worker 不可用不会收紧在线 Select 的 DB readiness。
+time-due 尊重 quiet period、
+完整窗口阈值、retry deadline 与 lease，不代表语义资格或 owner 串行队列已可领取。
+首个 active consolidation lease 不计为失败；已释放或过期 lease 的尝试计入重试，
+已完成行不贡献故障计数。只读查询不改变任何事实／资格；数据库错误正文不会外传。
+Worker 的可选 metadata-only Langfuse export 见 `worker/python/README.md`。
+
 默认规则：
 
 - 静默后单个完整 Episode 即可执行；未绑定 SourceEvent 不触发学习；

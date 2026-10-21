@@ -8,6 +8,7 @@ from .disposition_materials import (
     disposition_formation_material,
 )
 from .model import TextModel
+from .telemetry import LangfuseTelemetry, record_diagnostic
 from .source_materials import RecollectionMaterial, recollection_materials
 from .v1 import inference_pb2, inference_pb2_grpc
 
@@ -18,6 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 def _diagnostic(lane: str, status: str, count: int = 0) -> None:
     # Only call-site constants and numeric counts cross this diagnostic seam.
     _LOGGER.info("memory_worker lane=%s status=%s count=%d", lane, status, count)
+    record_diagnostic(lane, status, count)
 
 
 _RULES = """You are Memory Core's single background consolidation Worker.
@@ -217,11 +219,13 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
         model: TextModel,
         *,
         max_model_input_bytes: int = DEFAULT_MAX_MODEL_INPUT_BYTES,
+        telemetry: LangfuseTelemetry | None = None,
     ) -> None:
         if max_model_input_bytes <= 0:
             raise ValueError("max_model_input_bytes must be positive")
         self._model = model
         self._max_model_input_bytes = max_model_input_bytes
+        self._telemetry = telemetry
 
     async def ProcessConsolidationWindow(
         self,
@@ -229,6 +233,14 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
         context: object,
     ) -> inference_pb2.TaggedTextResponse:
         del context
+        if self._telemetry is None:
+            return await self._process_window(request)
+        async with self._telemetry.window(request) as window:
+            result = await self._process_window(request)
+            window.result_bytes = len(result.tagged_text.encode("utf-8"))
+            return result
+
+    async def _process_window(self, request):
         model_input = build_model_input(
             window_text=request.window_text,
             allowed_target_refs=request.allowed_target_refs,
@@ -323,7 +335,10 @@ class InferenceService(inference_pb2_grpc.InferenceWorkerServicer):
     async def _complete(self, model_input: str, lane: str) -> str:
         _diagnostic(lane, "requested")
         try:
-            response = await self._model.complete(model_input)
+            if self._telemetry is None:
+                response = await self._model.complete(model_input)
+            else:
+                response = await self._telemetry.complete(self._model, model_input, lane)
         except Exception:
             _diagnostic(lane, "model_failure")
             # gRPC logs unexpected exceptions with their messages/tracebacks.
