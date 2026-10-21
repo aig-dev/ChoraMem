@@ -1,5 +1,7 @@
 import asyncio
 import json
+import threading
+import time
 
 import pytest
 
@@ -25,6 +27,7 @@ async def test_concurrent_window_traces_are_isolated_and_contain_no_private_text
             allowed_basis_refs=["private-basis"], allowed_target_refs=["private-target"],
         ), None) for index in range(2)
     ])
+    telemetry.close()
     assert len(batches) == 2
     traces = []
     for batch in batches:
@@ -50,6 +53,7 @@ async def test_telemetry_failure_does_not_change_worker_result(caplog):
         ProcessConsolidationWindowRequest(job_ref="job", window_text="source"), None,
     )
     assert result.tagged_text == ""
+    telemetry.close()
     assert "telemetry_unavailable" in caplog.text
     assert "private exporter credentials" not in caplog.text
 
@@ -65,6 +69,7 @@ async def test_model_failure_is_recorded_without_raw_exception():
         await InferenceService(Broken(), telemetry=telemetry).ProcessConsolidationWindow(
             ProcessConsolidationWindowRequest(job_ref="job", window_text="source"), None,
         )
+    telemetry.close()
     assert "private provider error" not in json.dumps(batches)
     assert any(event["body"].get("level") == "ERROR" for event in batches[0])
 
@@ -73,3 +78,42 @@ def test_telemetry_requires_explicit_enable_and_complete_configuration():
     assert LangfuseTelemetry.from_environment({}) is None
     assert LangfuseTelemetry.from_environment({"MEMORY_WORKER_LANGFUSE_ENABLED": "true"}) is None
     assert LangfuseTelemetry.from_environment({"MEMORY_WORKER_LANGFUSE_ENABLED": "true", "LANGFUSE_HOST": "http://[malformed"}) is None
+
+
+@pytest.mark.asyncio
+async def test_slow_export_cannot_consume_inference_deadline_and_shutdown_is_bounded():
+    release = threading.Event()
+    def slow(batch):
+        release.wait(2)
+    telemetry = LangfuseTelemetry("http://localhost:3001", "public", "secret", "model", sender=slow)
+    try:
+        result = await asyncio.wait_for(InferenceService(Model(), telemetry=telemetry).ProcessConsolidationWindow(
+            ProcessConsolidationWindowRequest(job_ref="job", window_text="source"), None,
+        ), timeout=0.05)
+        assert result.tagged_text == ""
+        started = time.monotonic()
+        telemetry.close(timeout=0.01)
+        assert time.monotonic() - started < 0.2
+    finally:
+        release.set()
+        if hasattr(telemetry, "close"):
+            telemetry.close()
+
+
+@pytest.mark.asyncio
+async def test_export_backlog_is_bounded_and_drops_do_not_fail_rpc(caplog):
+    release = threading.Event()
+    def blocked(batch):
+        release.wait(2)
+    telemetry = LangfuseTelemetry("http://localhost:3001", "public", "secret", "model", sender=blocked)
+    service = InferenceService(Model(), telemetry=telemetry)
+    try:
+        results = await asyncio.wait_for(asyncio.gather(*[
+            service.ProcessConsolidationWindow(ProcessConsolidationWindowRequest(job_ref=str(index), window_text="source"), None)
+            for index in range(64)
+        ]), timeout=1)
+        assert all(result.tagged_text == "" for result in results)
+        assert "telemetry_dropped" in caplog.text
+    finally:
+        release.set()
+        telemetry.close()

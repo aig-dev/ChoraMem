@@ -25,8 +25,13 @@ type QueueDiagnostics struct {
 // increments on consolidation lease; the first attempt is not a retry.
 const ConsolidationDiagnosticsSQL = `WITH pending AS (
  SELECT *, (not_before <= CURRENT_TIMESTAMP AND
-  (window_hash IS NOT NULL OR updated_at <= $1 OR cardinality(episode_refs) >= $2)) AS time_ready
- FROM consolidation_jobs WHERE completed_at IS NULL
+  (window_hash IS NOT NULL OR updated_at <= $1 OR cardinality(episode_refs) >= $2) AND NOT EXISTS (
+    SELECT 1 FROM consolidation_jobs AS earlier
+    WHERE earlier.tenant_ref = job.tenant_ref AND earlier.scope_kind = job.scope_kind
+      AND earlier.agent_ref = job.agent_ref AND earlier.relationship_ref = job.relationship_ref
+      AND earlier.completed_at IS NULL AND earlier.job_order < job.job_order
+  )) AS time_ready
+ FROM consolidation_jobs AS job WHERE completed_at IS NULL
  ) SELECT COUNT(*),
  COALESCE(SUM(CASE WHEN time_ready AND (lease_until IS NULL OR lease_until <= CURRENT_TIMESTAMP) THEN 1 ELSE 0 END), 0),
  COALESCE(SUM(CASE WHEN lease_until > CURRENT_TIMESTAMP THEN 1 ELSE 0 END), 0),
@@ -34,12 +39,18 @@ const ConsolidationDiagnosticsSQL = `WITH pending AS (
  MIN(CASE WHEN time_ready AND (lease_until IS NULL OR lease_until <= CURRENT_TIMESTAMP) THEN created_at END)
  FROM pending`
 
-const ProjectionDiagnosticsSQL = `SELECT COUNT(*),
- COALESCE(SUM(CASE WHEN not_before <= CURRENT_TIMESTAMP AND (lease_until IS NULL OR lease_until <= CURRENT_TIMESTAMP) THEN 1 ELSE 0 END), 0),
+const ProjectionDiagnosticsSQL = `WITH pending AS (
+ SELECT operation.*, (not_before <= CURRENT_TIMESTAMP AND NOT EXISTS (
+   SELECT 1 FROM memory_index_operations AS earlier
+   WHERE earlier.stream_ref = operation.stream_ref AND earlier.stream_sequence < operation.stream_sequence
+     AND earlier.acknowledged_at IS NULL
+ )) AS time_ready FROM memory_index_operations AS operation WHERE acknowledged_at IS NULL
+ ) SELECT COUNT(*),
+ COALESCE(SUM(CASE WHEN time_ready AND (lease_until IS NULL OR lease_until <= CURRENT_TIMESTAMP) THEN 1 ELSE 0 END), 0),
  COALESCE(SUM(CASE WHEN lease_until > CURRENT_TIMESTAMP THEN 1 ELSE 0 END), 0),
  COALESCE(MAX(attempt_count), 0),
- MIN(CASE WHEN not_before <= CURRENT_TIMESTAMP AND (lease_until IS NULL OR lease_until <= CURRENT_TIMESTAMP) THEN created_at END)
- FROM memory_index_operations WHERE acknowledged_at IS NULL`
+ MIN(CASE WHEN time_ready AND (lease_until IS NULL OR lease_until <= CURRENT_TIMESTAMP) THEN created_at END)
+ FROM pending`
 
 func ScanQueueStats(scan func(...any) error) (QueueStats, error) {
 	var stats QueueStats

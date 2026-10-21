@@ -55,6 +55,8 @@ async def serve(
         await server.wait_for_termination()
     finally:
         await server.stop(grace=5)
+        if telemetry is not None:
+            telemetry.close(timeout=1)
 
 
 def parse_settings(

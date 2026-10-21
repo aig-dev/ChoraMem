@@ -209,8 +209,10 @@ Worker 提供标准 gRPC Health `Check`，service 为
 不依赖 Langfuse SDK。每个 Worker RPC attempt 创建 `memory.consolidation` trace；
 实际 primary / formation / feedback / recollection 模型调用各有 generation。
 仅上传 job SHA-256 关联、固定 lane/status、计数、模型名、时间和 bytes，不上传
-prompt、正文、原始 refs 或异常信息。并发请求以 ContextVar 隔离。网络 export 有界、
-失败只产生安全 warning，不改变 Worker 文本或 Core 的重试／资格规则。
+prompt、正文、原始 refs 或异常信息。并发请求以 ContextVar 隔离。RPC 只向最多 32 项
+队列入队，不等待网络；单个 daemon thread 负责 export，满载只丢弃 telemetry 并输出
+安全 warning。停机最多等待一秒排空，网络失败不占用模型 executor、不改变 Worker
+文本或 Core 的重试／资格规则。
 `uncommitted_proposal` 只表示 Worker 输出，不能替代 Core commit 或效果证据。
 
 

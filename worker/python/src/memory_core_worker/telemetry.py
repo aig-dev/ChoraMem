@@ -1,7 +1,6 @@
 """Optional operational export; no memory content or raw identities cross here."""
 from __future__ import annotations
 
-import asyncio
 import base64
 from contextlib import asynccontextmanager
 from contextvars import ContextVar
@@ -11,6 +10,9 @@ import hashlib
 import json
 import logging
 import os
+import queue
+import threading
+import time
 from urllib.parse import urlsplit
 from urllib.request import Request, urlopen
 from uuid import uuid4
@@ -60,6 +62,11 @@ class LangfuseTelemetry:
         self._authorization = "Basic " + base64.b64encode(f"{public_key}:{secret_key}".encode()).decode()
         self._model = model
         self._sender = sender or self._post
+        self._queue = queue.Queue(maxsize=32)
+        self._closed = threading.Event()
+        self._shutdown_deadline = 0.0
+        self._thread = threading.Thread(target=self._export, name="memory-telemetry", daemon=True)
+        self._thread.start()
 
     @classmethod
     def from_environment(cls, environment=os.environ, *, model=None):
@@ -112,10 +119,34 @@ class LangfuseTelemetry:
                 "endTime": _now(), "level": "ERROR" if status == "failed" else "DEFAULT",
                 "metadata": {"status": status, "result_bytes": window.result_bytes},
             })
+            if not self._closed.is_set():
+                try:
+                    self._queue.put_nowait([trace, span, *window.events])
+                except queue.Full:
+                    _LOGGER.warning("memory_worker lane=telemetry status=telemetry_dropped")
+
+    def _export(self):
+        while not self._closed.is_set() or (not self._queue.empty() and time.monotonic() < self._shutdown_deadline):
             try:
-                await asyncio.wait_for(asyncio.to_thread(self._sender, [trace, span, *window.events]), timeout=3)
+                batch = self._queue.get(timeout=0.05)
+            except queue.Empty:
+                continue
+            try:
+                self._sender(batch)
             except Exception:
                 _LOGGER.warning("memory_worker lane=telemetry status=telemetry_unavailable")
+            finally:
+                self._queue.task_done()
+
+    def close(self, timeout=1):
+        """Best-effort drain with bounded shutdown; exporter never holds up RPCs.
+
+        One daemon thread and a bounded queue keep unavailable telemetry from
+        occupying the model's executor or accumulating unbounded requests.
+        """
+        self._shutdown_deadline = time.monotonic() + timeout
+        self._closed.set()
+        self._thread.join(timeout=timeout)
 
     async def complete(self, model, text, lane):
         window = _ACTIVE_WINDOW.get()
